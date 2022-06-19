@@ -17,11 +17,11 @@ Minimum Viable Product
   - countdown to end of round
   - team choice before start
 - profiles for the different roles
-- vlag: health goes down when hit
+- flag: health goes down when hit
   if health = 0 -> stop round timer
   
 - end of round
-  - winner is the team with highest flag health, or shortest flag timer (flag survived longest)
+  - winner is the team with the highest flag health, or shortest flag timer (flag survived longest)
 
 - offline: shooting in semi-automatic mode
 
@@ -127,9 +127,9 @@ Profiles
 
 # Extra
 - 3 teams
-- deathmatch (no teams)
+- death-match (no teams)
 - bluetooth bomb
 - bom trigger = touch
-   opladen + ontploffen
+   hold to charge + detonate when released
 - ammo counter
 - statistics who hit who
