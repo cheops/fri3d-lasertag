@@ -29,21 +29,21 @@ Minimum Viable Product
 # global round state machine:
 0. practice
 1. prestart
-  - countdown to round start
-  - no shooting
-  - no hitting
-  - health 100%
+    - countdown to round start
+    - no shooting
+    - no hitting
+    - health 100%
 2. start
-  - countdown to end of game
-  - shooting semi automatic mode
-  - getting hit
-    - timeout for next hit
-    - health -5
-    - no shooting possible during timeout
-    - timeout 3 seconds (for a round of 5 min)
-  - health 0% -> dead
+    - countdown to end of game
+    - shooting semi automatic mode
+    - getting hit
+      - timeout for next hit
+      - health -5
+      - no shooting possible during timeout
+      - timeout 3 seconds (for a round of 5 min)
+    - health 0% -> dead
 3. round end
-  - flag health and stopped counter to determine winner
+    - flag health and stopped counter to determine winner
   
 Profiles
 ========
