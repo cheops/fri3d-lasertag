@@ -48,7 +48,7 @@ Profiles: master, player, flag red, flag green, flag blue
 
 0. boot
     - if button is pressed during boot, allow changing profile
-1. confirm_profile
+1. confirm_profile or button is not pressed during boot
     - practicing starts
 2. prestart
     - countdown to playing start
