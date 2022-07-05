@@ -1,20 +1,35 @@
 Minimum Viable Product
 
 # vocabulary
-- round: 1 cycle of prestart (2 min) + actual round (5 min)
-- practice: free shooting mode before prestart
-- prestart: 2 min period with no shooting where players can take position
-- start: start of actual round (5 min)
+- round: 1 cycle of practicing (2 min) + actual playing (5 min)
 - health: player/flag health, starts at 100%, counts down to 0% (= dead)
 - profile: preconfigured settings of role in the game
 - hit: a blaster receives the ir signal of another blaster
+### states
+- booting: change profile possible, if confirmed practicing
+- practicing: free shooting mode before prestart
+- hiding: period with no shooting where players can take position (2 min)
+- playing: actual playing (5 min)
+- finishing: return to master
+### actions (that trigger state change)
+- boot: if button is pressed booting, otherwise practicing
+- confirm_profile: start of practicing
+- prestart: start of hiding
+- start: start of playing
+- end: start of finishing
+### roles
+- master
+- player
+- flag red
+- flag green
+- flag blue
 
-
+### rules
 - 2 teams
 - health counter 100%
-- start round via bluetooth
+- bluetooth triggers prestart
   - countdown to start
-  - countdown to end of round
+  - countdown to end of playing
   - team choice before start
 - profiles for the different roles
 - flag: health goes down when hit
@@ -27,27 +42,34 @@ Minimum Viable Product
 
 
 # global round state machine:
-0. practice
-1. prestart
-    - countdown to round start
+States: booting, practicing, hiding, playing, finishing  
+Actions: boot, confirm_profile, prestart, start, end
+Profiles: master, player, flag red, flag green, flag blue
+
+0. boot
+    - if button is pressed during boot, allow changing profile
+1. confirm_profile
+    - practicing starts
+2. prestart
+    - countdown to playing start
     - no shooting
     - no hitting
     - health 100%
-2. start
+3. start
     - countdown to end of game
-    - shooting semi automatic mode
+    - shooting semi-automatic mode
     - getting hit
       - timeout for next hit
       - health -5
       - no shooting possible during timeout
       - timeout 3 seconds (for a round of 5 min)
-    - health 0% -> dead
-3. round end
-    - flag health and stopped counter to determine winner
+    - health 0% -> dead -> stop counter
+4. end
+    - flag health or stopped counter to determine winner
   
 Profiles
 ========
-## p. player
+### player
   - screen
 ```
 +---------+--------+
@@ -61,10 +83,10 @@ Profiles
   - ammo 100%
   - timer: 
     - prestart: countdown to start
-    - start: countdown to round end
+    - start: countdown to end
   - hit -> 5 leds on in team color -> out in 3 sec one by one
 
-## fr. flag red
+### flag_red
   - screen
 ```
 +---------+--------+
@@ -78,11 +100,11 @@ Profiles
   - red team color
   - timer: 
     - prestart: countdown to start
-    - start: countdown to round end
+    - start: countdown to end
   - hit -> 5 leds on in team colour -> out in 3 sec one by one
 
 
-## fg. flag green
+### flag_green
   - screen
 ```
 +---------+--------+
@@ -96,10 +118,10 @@ Profiles
   - green team color
   - timer: 
     - prestart: countdown to start
-    - start: countdown to round end
+    - start: countdown to end
   - hit -> 5 leds on in team colour -> out in 3 sec one by one
 
-## fb. flag blue
+### flag blue
   - screen
 ```
 +---------+--------+
@@ -113,11 +135,11 @@ Profiles
   - blue team color
   - timer: 
     - prestart: countdown to start
-    - start: countdown to round end
+    - start: countdown to end
   - hit -> 5 leds on in team colour -> out in 3 sec one by one
 
 
-## m. master
+### master
 - prestart: send config via bluetooth
 - game modus
 
