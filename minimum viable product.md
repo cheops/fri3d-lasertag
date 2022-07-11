@@ -23,6 +23,15 @@ Minimum Viable Product
 - flag red
 - flag green
 - flag blue
+### inputs
+- shoot
+- hit
+- timer-end
+- button
+- touch-left
+- touch-middle
+- touch-right
+
 
 ### rules
 - 2 teams
