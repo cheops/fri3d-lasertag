@@ -25,7 +25,7 @@ Minimum Viable Product
 - flag blue
 
 ### rules
-- 2 teams
+- 3 teams
 - health counter 100%
 - bluetooth triggers prestart
   - countdown to start
