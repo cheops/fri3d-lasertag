@@ -5,6 +5,7 @@ Minimum Viable Product
 - health: player/flag health, starts at 100%, counts down to 0% (= dead)
 - profile: preconfigured settings of role in the game
 - hit: a blaster receives the ir signal of another blaster
+- Red, Green, Blue = Rex, Giggle, Buzz
 ### states
 - booting: change profile possible, if confirmed practicing
 - practicing: free shooting mode before prestart
@@ -20,9 +21,9 @@ Minimum Viable Product
 ### roles
 - master
 - player
-- flag red
-- flag green
-- flag blue
+- flag rex
+- flag giggle
+- flag buzz
 ### inputs
 - shoot
 - hit
@@ -34,7 +35,7 @@ Minimum Viable Product
 
 
 ### rules
-- 3 teams
+- 3 teams (Rex, Giggle, Buzz)
 - health counter 100%
 - bluetooth triggers prestart
   - countdown to start
@@ -53,7 +54,7 @@ Minimum Viable Product
 # global round state machine:
 States: booting, practicing, hiding, playing, finishing  
 Actions: boot, confirm_profile, prestart, start, end
-Profiles: master, player, flag red, flag green, flag blue
+Profiles: master, player, flag rex, flag giggle, flag buzz
 
 0. boot
     - if button is pressed during boot, allow changing profile
@@ -85,7 +86,10 @@ Profiles
 | Health  | Ammo   |
 |  100%   | 100%   |
 +---------+--------+
+|    countdown     |
 |       0:00       |
++------------------+
+|    player buzz   |
 +------------------+
 ```
   - health 100%
@@ -95,53 +99,62 @@ Profiles
     - start: countdown to end
   - hit -> 5 leds on in team color -> out in 3 sec one by one
 
-### flag_red
+### flag_rex
   - screen
 ```
 +---------+--------+
-| Health  |  Red   |
+| Health  |  Rex   |
 |  100%   |        |
 +---------+--------+
+|    countdown     |
 |       0:00       |
++------------------+
+|     flag rex     |
 +------------------+
 ```
   - health 100%
-  - red team color
+  - red team color = rex
   - timer: 
     - prestart: countdown to start
     - start: countdown to end
   - hit -> 5 leds on in team colour -> out in 3 sec one by one
 
 
-### flag_green
+### flag_giggle
   - screen
 ```
 +---------+--------+
-| Health  | Green  |
+| Health  | Giggle |
 |  100%   |        |
 +---------+--------+
+|    countdown     |
 |       0:00       |
++------------------+
+|    flag giggle   |
 +------------------+
 ```
   - health 100%
-  - green team color
+  - green team color = giggle
   - timer: 
     - prestart: countdown to start
     - start: countdown to end
   - hit -> 5 leds on in team colour -> out in 3 sec one by one
 
-### flag blue
+### flag buzz
   - screen
 ```
 +---------+--------+
-| Health  | Blue   |
+| Health  | Buzz   |
 |  100%   |        |
 +---------+--------+
+|    countdown     |
 |       0:00       |
++------------------+
+|     flag buzz    |
 +------------------+
 ```
   - health 100%
-  - blue team color
+  - blue team color = buzz
   - timer: 
     - prestart: countdown to start
     - start: countdown to end
