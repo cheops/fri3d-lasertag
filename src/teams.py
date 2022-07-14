@@ -1,0 +1,5 @@
+REX = 'REX'
+GIGGLE = 'GIGGLE'
+BUZZ = 'BUZZ'
+
+teams = [REX, GIGGLE, BUZZ]
