@@ -3,7 +3,6 @@ class Profile:
     children = []
 
     def __init__(self):
-        print('init Profile')
         Profile.children.append(self)
 
     @classmethod

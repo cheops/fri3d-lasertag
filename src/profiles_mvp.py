@@ -1,9 +1,9 @@
 import uasyncio
 import time
 
-from hardware import blaster
+from hardware import blaster, boot_button
 from profiles_common import Profile
-from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING
+from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING, PRESTART
 from mvp import DEAD, COUNTDOWN_END
 from mvp import playing_time, hiding_time, hit_damage
 from display import DisplayFlag, DisplayPlayer
@@ -17,6 +17,7 @@ class FlagAndPlayer(Profile):
         self.name = self.__class__.__name__ + ' ' + team
         self._team = team
         self.health = 100
+        self._current_state_tasks = []
 
     def run(self, state, statemachine):
         print(state)
@@ -43,6 +44,10 @@ class FlagAndPlayer(Profile):
     def _finishing(self, statemachine):
         pass
 
+    def stop_current_tasks(self):
+        for t in self._current_state_tasks:
+            t.cancel()
+
 
 class Flag(FlagAndPlayer):
 
@@ -51,11 +56,17 @@ class Flag(FlagAndPlayer):
         my_display = DisplayFlag(self._team)
         my_display.draw_upper_left(self.health)
         my_display.draw_middle(0)
+        uasyncio.run(_monitor_button_simulate_prestart(statemachine))
+        blaster.blaster.set_trigger_action(disable=True)
 
     def _hiding(self, statemachine):
         my_display = DisplayFlag(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_middle(0)
+        blaster.blaster.set_trigger_action(disable=True)
+
+        task = uasyncio.create_task(_blink_team_led())
+        self._current_state_tasks.append(task)
 
         uasyncio.run(_countdown(my_display, hiding_time, statemachine))
 
@@ -63,6 +74,7 @@ class Flag(FlagAndPlayer):
         my_display = DisplayFlag(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_middle(0)
+        blaster.blaster.set_trigger_action(disable=True)
 
         uasyncio.run(_countdown(my_display, playing_time, statemachine))
         uasyncio.run(self._monitor_blaster(my_display, statemachine))
@@ -87,12 +99,17 @@ class Player(FlagAndPlayer):
         my_display.draw_upper_left(100)
         my_display.draw_upper_right(100)
         my_display.draw_middle(0)
+        uasyncio.run(_monitor_button_simulate_prestart(statemachine))
 
     def _hiding(self, statemachine):
         my_display = DisplayPlayer(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_upper_right(100)
         my_display.draw_middle(0)
+        blaster.blaster.set_trigger_action(disable=True)
+
+        task = uasyncio.create_task(_blink_team_led())
+        self._current_state_tasks.append(task)
 
         uasyncio.run(_countdown(my_display, hiding_time, statemachine))
 
@@ -101,6 +118,7 @@ class Player(FlagAndPlayer):
         my_display.draw_upper_left(100)
         my_display.draw_upper_right(100)
         my_display.draw_middle(0)
+        blaster.blaster.set_trigger_action(disable=False)
 
         uasyncio.run(_countdown(my_display, playing_time, statemachine))
         uasyncio.run(self._monitor_blaster(my_display, statemachine))
@@ -124,14 +142,26 @@ def _booting(statemachine):
 async def _countdown(countdown_display, countdown_seconds, statemachine):
     start = time.ticks_ms()  # get millisecond counter
 
+    previous_remaining_seconds = None
     while True:
         uasyncio.sleep(100)
         delta = time.ticks_diff(time.ticks_ms(), start)  # compute time difference
 
         remaining_seconds = int((countdown_seconds * 1000 - delta) / 1000)
-        countdown_display.draw_middle(remaining_seconds)
+        if remaining_seconds != previous_remaining_seconds:
+            previous_remaining_seconds = remaining_seconds
+            countdown_display.draw_middle(remaining_seconds)
         if delta >= countdown_seconds * 1000:
             statemachine.trigger(COUNTDOWN_END)
+            break
+
+
+async def _monitor_button_simulate_prestart(statemachine):
+    while True:
+        uasyncio.sleep(100)
+        if boot_button.value() == 0:
+            statemachine.trigger(PRESTART)
+            break
 
 
 player_rex_profile = Player(REX)
@@ -140,4 +170,3 @@ player_buzz_profile = Player(BUZZ)
 flag_rex_profile = Flag(REX)
 flag_giggle_profile = Flag(GIGGLE)
 flag_buzz_profile = Flag(BUZZ)
-

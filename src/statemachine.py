@@ -24,6 +24,7 @@ class StateMachine:
                 new_model = event.clear_new_model()
                 if new_model:
                     self.model = new_model
+                self.model.stop_current_tasks()
                 self.model.run(self.state, self)
                 break
 
