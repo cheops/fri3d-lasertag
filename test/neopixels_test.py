@@ -1,6 +1,6 @@
 from time import sleep
 
-from machine import Pin
+from statemachine import Pin
 from neopixel import NeoPixel
 
 neopixel_pin = Pin(2, Pin.OUT)
