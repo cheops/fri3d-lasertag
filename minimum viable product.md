@@ -12,12 +12,12 @@ Minimum Viable Product
 - hiding: period with no shooting where players can take position (2 min)
 - playing: actual playing (5 min)
 - finishing: return to master
-### actions (that trigger state change)
+### events (that trigger state change)
 - boot: if button is pressed booting, otherwise practicing
 - confirm_profile: start of practicing
 - prestart: start of hiding
-- start: start of playing
-- end: start of finishing
+- countdown-end: the hiding or playing time is finished
+- dead: health <= 0
 ### roles
 - master
 - player
@@ -27,7 +27,7 @@ Minimum Viable Product
 ### inputs
 - shoot
 - hit
-- timer-end
+- countdown-end
 - button
 - touch-left
 - touch-middle
