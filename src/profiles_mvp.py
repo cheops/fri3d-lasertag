@@ -3,7 +3,7 @@ import time
 
 from hardware import blaster, boot_button
 from profiles_common import Profile
-from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING, PRESTART
+from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING, PRESTART, BOOT
 from mvp import DEAD, COUNTDOWN_END
 from mvp import playing_time, hiding_time, hit_damage
 from display import DisplayFlag, DisplayPlayer
@@ -55,29 +55,33 @@ class Flag(FlagAndPlayer):
         super()._practicing(statemachine)
         my_display = DisplayFlag(self._team)
         my_display.draw_upper_left(self.health)
+        my_display.draw_static_middle("Practicing")
         my_display.draw_middle(0)
-        uasyncio.run(_monitor_button_simulate_prestart(statemachine))
+        uasyncio.run(_monitor_button_simulate_event(statemachine, PRESTART))
         blaster.blaster.set_trigger_action(disable=True)
 
     def _hiding(self, statemachine):
         my_display = DisplayFlag(self._team)
-        my_display.draw_upper_left(100)
-        my_display.draw_middle(0)
+        my_display.draw_upper_left(self.health)
+        my_display.draw_static_middle("Hiding")
         blaster.blaster.set_trigger_action(disable=True)
-
-        task = uasyncio.create_task(_blink_team_led())
-        self._current_state_tasks.append(task)
 
         uasyncio.run(_countdown(my_display, hiding_time, statemachine))
 
     def _playing(self, statemachine):
         my_display = DisplayFlag(self._team)
-        my_display.draw_upper_left(100)
-        my_display.draw_middle(0)
+        my_display.draw_upper_left(self.health)
+        my_display.draw_static_middle("Playing")
         blaster.blaster.set_trigger_action(disable=True)
 
         uasyncio.run(_countdown(my_display, playing_time, statemachine))
         uasyncio.run(self._monitor_blaster(my_display, statemachine))
+
+    def _finishing(self, statemachine):
+        my_display = DisplayFlag(self._team)
+        my_display.draw_upper_left(self.health)
+        my_display.draw_static_middle("Finishing")
+        uasyncio.run(_monitor_button_simulate_event(statemachine, BOOT))
 
     async def _monitor_blaster(self, my_display, statemachine):
         while True:
@@ -96,32 +100,37 @@ class Player(FlagAndPlayer):
     def _practicing(self, statemachine):
         super()._practicing(statemachine)
         my_display = DisplayPlayer(self._team)
-        my_display.draw_upper_left(100)
+        my_display.draw_upper_left(self.health)
         my_display.draw_upper_right(100)
+        my_display.draw_static_middle("Practicing")
         my_display.draw_middle(0)
-        uasyncio.run(_monitor_button_simulate_prestart(statemachine))
+        blaster.blaster.set_trigger_action(disable=False)
+        uasyncio.run(_monitor_button_simulate_event(statemachine, PRESTART))
 
     def _hiding(self, statemachine):
         my_display = DisplayPlayer(self._team)
-        my_display.draw_upper_left(100)
+        my_display.draw_upper_left(self.health)
         my_display.draw_upper_right(100)
-        my_display.draw_middle(0)
+        my_display.draw_static_middle("Hiding")
         blaster.blaster.set_trigger_action(disable=True)
-
-        task = uasyncio.create_task(_blink_team_led())
-        self._current_state_tasks.append(task)
 
         uasyncio.run(_countdown(my_display, hiding_time, statemachine))
 
     def _playing(self, statemachine):
         my_display = DisplayPlayer(self._team)
-        my_display.draw_upper_left(100)
+        my_display.draw_upper_left(self.health)
         my_display.draw_upper_right(100)
-        my_display.draw_middle(0)
+        my_display.draw_static_middle("Playing")
         blaster.blaster.set_trigger_action(disable=False)
 
         uasyncio.run(_countdown(my_display, playing_time, statemachine))
         uasyncio.run(self._monitor_blaster(my_display, statemachine))
+
+    def _finishing(self, statemachine):
+        my_display = DisplayPlayer(self._team)
+        my_display.draw_upper_left(self.health)
+        my_display.draw_static_middle("Finishing")
+        uasyncio.run(_monitor_button_simulate_event(statemachine, BOOT))
 
     async def _monitor_blaster(self, my_display, statemachine):
         while True:
@@ -156,12 +165,16 @@ async def _countdown(countdown_display, countdown_seconds, statemachine):
             break
 
 
-async def _monitor_button_simulate_prestart(statemachine):
+async def _monitor_button_simulate_event(statemachine, event):
+    last_value = boot_button.value()
     while True:
         uasyncio.sleep(100)
-        if boot_button.value() == 0:
-            statemachine.trigger(PRESTART)
-            break
+        new_value = boot_button.value()
+        if last_value != new_value:
+            last_value = new_value
+            if new_value == 0:
+                statemachine.trigger(event)
+                break
 
 
 player_rex_profile = Player(REX)

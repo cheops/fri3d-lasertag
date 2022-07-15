@@ -46,7 +46,7 @@ class Display:
         self._draw_borders()
         self._draw_static_upper_left()
         self._draw_static_upper_right()
-        self._draw_static_middle()
+        self.draw_static_middle("Countdown")
         self._draw_static_bottom()
 
     def _draw_borders(self):
@@ -76,10 +76,10 @@ class Display:
     def _draw_static_upper_right(self):
         pass
 
-    def _draw_static_middle(self):
+    def draw_static_middle(self, txt):
         # middle bg_color
         tft.fill_rect(self._width, 82 + int(self._width / 2), 240 - self._width * 2, 109, self._bg_color)
-        tft.write(font_16, "Countdown", 8 + 50, 92, self._color, self._bg_color)
+        tft.write(font_16, txt, 8 + 50, 92, self._color, self._bg_color)
 
     def draw_middle(self, countdown_seconds):
         countdown = time.localtime(countdown_seconds)
@@ -147,6 +147,7 @@ def test_player_screens():
         player_screen = DisplayPlayer(team)
         player_screen.draw_upper_left(100)
         player_screen.draw_upper_right(100)
+        player_screen.draw_static_middle("Playing")
         player_screen.draw_middle(5 * 60)
 
         time.sleep(1)
@@ -156,6 +157,7 @@ def test_flag_screens():
     for team in teams.teams:
         flag_screen = DisplayFlag(team)
         flag_screen.draw_upper_left(100)
+        flag_screen.draw_static_middle("Hiding")
         flag_screen.draw_middle(5 * 60)
 
         time.sleep(1)
