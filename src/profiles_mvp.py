@@ -1,15 +1,17 @@
 import uasyncio
 import time
 
-import hardware
-import game_profiles
-import mvp
-import display
-import teams
-import booting_screen
+from hardware import blaster
+from profiles_common import Profile
+from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING
+from mvp import DEAD, COUNTDOWN_END
+from mvp import playing_time, hiding_time, hit_damage
+from display import DisplayFlag, DisplayPlayer
+from teams import REX, GIGGLE, BUZZ, team_blaster
+from booting_screen import monitor as booting_monitor
 
 
-class FlagAndPlayer(game_profiles.Profile):
+class FlagAndPlayer(Profile):
     def __init__(self, team):
         super().__init__()
         self.name = self.__class__.__name__ + ' ' + team
@@ -18,19 +20,19 @@ class FlagAndPlayer(game_profiles.Profile):
 
     def run(self, state, statemachine):
         print(state)
-        if state == mvp.BOOTING:
+        if state == BOOTING:
             _booting(statemachine)
-        elif state == mvp.PRACTICING:
+        elif state == PRACTICING:
             self._practicing(statemachine)
-        elif state == mvp.HIDING:
+        elif state == HIDING:
             self._hiding(statemachine)
-        elif state == mvp.PLAYING:
+        elif state == PLAYING:
             self._playing(statemachine)
-        elif state == mvp.FINISHING:
+        elif state == FINISHING:
             self._finishing(statemachine)
 
     def _practicing(self, statemachine):
-        hardware.blaster.blaster.set_team(teams.team_blaster(self._team))
+        blaster.blaster.set_team(team_blaster[self._team])
 
     def _hiding(self, statemachine):
         pass
@@ -46,34 +48,34 @@ class Flag(FlagAndPlayer):
 
     def _practicing(self, statemachine):
         super()._practicing(statemachine)
-        my_display = display.DisplayFlag(self._team)
+        my_display = DisplayFlag(self._team)
         my_display.draw_upper_left(self.health)
         my_display.draw_middle(0)
 
     def _hiding(self, statemachine):
-        my_display = display.DisplayFlag(self._team)
+        my_display = DisplayFlag(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_middle(0)
 
-        uasyncio.run(_countdown(my_display, mvp.hiding_time, statemachine))
+        uasyncio.run(_countdown(my_display, hiding_time, statemachine))
 
     def _playing(self, statemachine):
-        my_display = display.DisplayFlag(self._team)
+        my_display = DisplayFlag(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_middle(0)
 
-        uasyncio.run(_countdown(my_display, mvp.playing_time, statemachine))
+        uasyncio.run(_countdown(my_display, playing_time, statemachine))
         uasyncio.run(self._monitor_blaster(my_display, statemachine))
 
     async def _monitor_blaster(self, my_display, statemachine):
         while True:
             uasyncio.sleep(100)
-            result = hardware.blaster.blaster.get_blaster_shot()
+            result = blaster.blaster.get_blaster_shot()
             if result:
-                self.health -= mvp.hit_damage
+                self.health -= hit_damage
                 my_display.draw_upper_left(self.health)
                 if self.health <= 0:
-                    statemachine.trigger(mvp.DEAD)
+                    statemachine.trigger(DEAD)
                     break
 
 
@@ -81,42 +83,42 @@ class Player(FlagAndPlayer):
 
     def _practicing(self, statemachine):
         super()._practicing(statemachine)
-        my_display = display.DisplayPlayer(self._team)
+        my_display = DisplayPlayer(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_upper_right(100)
         my_display.draw_middle(0)
 
     def _hiding(self, statemachine):
-        my_display = display.DisplayPlayer(self._team)
+        my_display = DisplayPlayer(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_upper_right(100)
         my_display.draw_middle(0)
 
-        uasyncio.run(_countdown(my_display, mvp.hiding_time, statemachine))
+        uasyncio.run(_countdown(my_display, hiding_time, statemachine))
 
     def _playing(self, statemachine):
-        my_display = display.DisplayPlayer(self._team)
+        my_display = DisplayPlayer(self._team)
         my_display.draw_upper_left(100)
         my_display.draw_upper_right(100)
         my_display.draw_middle(0)
 
-        uasyncio.run(_countdown(my_display, mvp.playing_time, statemachine))
+        uasyncio.run(_countdown(my_display, playing_time, statemachine))
         uasyncio.run(self._monitor_blaster(my_display, statemachine))
 
     async def _monitor_blaster(self, my_display, statemachine):
         while True:
             uasyncio.sleep(100)
-            result = hardware.blaster.blaster.get_blaster_shot()
+            result = blaster.blaster.get_blaster_shot()
             if result:
-                self.health -= mvp.hit_damage
+                self.health -= hit_damage
                 my_display.draw_upper_left(self.health)
                 if self.health <= 0:
-                    statemachine.trigger(mvp.DEAD)
+                    statemachine.trigger(DEAD)
                     break
 
 
 def _booting(statemachine):
-    uasyncio.run(booting_screen.monitor(statemachine))
+    uasyncio.run(booting_monitor(statemachine))
 
 
 async def _countdown(countdown_display, countdown_seconds, statemachine):
@@ -129,12 +131,13 @@ async def _countdown(countdown_display, countdown_seconds, statemachine):
         remaining_seconds = int((countdown_seconds * 1000 - delta) / 1000)
         countdown_display.draw_middle(remaining_seconds)
         if delta >= countdown_seconds * 1000:
-            statemachine.trigger(mvp.COUNTDOWN_END)
+            statemachine.trigger(COUNTDOWN_END)
 
 
-player_rex_profile = Player(teams.REX)
-player_giggle_profile = Player(teams.GIGGLE)
-player_buzz_profile = Player(teams.BUZZ)
-flag_rex_profile = Flag(teams.REX)
-flag_giggle_profile = Flag(teams.GIGGLE)
-flag_buzz_profile = Flag(teams.BUZZ)
+player_rex_profile = Player(REX)
+player_giggle_profile = Player(GIGGLE)
+player_buzz_profile = Player(BUZZ)
+flag_rex_profile = Flag(REX)
+flag_giggle_profile = Flag(GIGGLE)
+flag_buzz_profile = Flag(BUZZ)
+

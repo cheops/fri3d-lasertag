@@ -1,9 +1,8 @@
-import statemachine
-import mvp
-import flag_buzz
+from mvp import states_mvp, transitions_mvp, BOOTING
+from profiles_mvp import player_buzz_profile
+from statemachine import StateMachine
 
-mvp_statemachine = statemachine.StateMachine(flag_buzz.flag_buzz_profile,
-                                             mvp.states_mvp,
-                                             mvp.transitions_mvp,
-                                             mvp.BOOTING)
-
+mvp_statemachine = StateMachine(player_buzz_profile,
+                                states_mvp,
+                                transitions_mvp,
+                                BOOTING)

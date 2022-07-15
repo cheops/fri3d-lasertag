@@ -45,7 +45,8 @@ class Event:
         self._kv['new_model'] = model
 
     def clear_new_model(self):
-        self._kv.pop('new_model')
+        if 'new_model' in self._kv:
+            return self._kv.pop('new_model')
 
     def __repr__(self):
         return self.__class__.__name__ + ':' + self.name
@@ -98,3 +99,4 @@ class Transition:
 #
 # #test_it()
 #
+
