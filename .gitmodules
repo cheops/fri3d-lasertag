@@ -1,3 +1,6 @@
 [submodule "st7789py_mpy"]
 	path = st7789py_mpy
 	url = https://github.com/russhughes/st7789py_mpy.git
+[submodule "Timeblaster"]
+	path = Timeblaster
+	url = https://github.com/area3001/Timeblaster.git
