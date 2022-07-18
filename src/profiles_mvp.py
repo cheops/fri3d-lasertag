@@ -34,6 +34,10 @@ class FlagAndPlayer(Profile):
         elif state == FINISHING:
             self._finishing(statemachine)
 
+    def stop_current_tasks(self):
+        for t in self._current_state_tasks:
+            t.cancel()
+
     def _practicing(self, statemachine):
         blaster.blaster.set_team(team_blaster[self._team])
         self._my_display.draw_initial()
