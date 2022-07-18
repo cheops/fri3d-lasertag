@@ -9,6 +9,7 @@ from mvp import playing_time, hiding_time, hit_damage
 from display import DisplayFlag, DisplayPlayer
 from teams import REX, GIGGLE, BUZZ, team_blaster
 from booting_screen import monitor as booting_monitor
+from monitor_blaster import monitor_blaster
 
 
 class FlagAndPlayer(Profile):
@@ -84,15 +85,18 @@ class Flag(FlagAndPlayer):
         uasyncio.run(_monitor_button_simulate_event(statemachine, BOOT))
 
     async def _monitor_blaster(self, my_display, statemachine):
-        while True:
-            uasyncio.sleep(100)
-            result = blaster.blaster.get_blaster_shot()
-            if result:
-                self.health -= hit_damage
-                my_display.draw_upper_left(self.health)
-                if self.health <= 0:
-                    statemachine.trigger(DEAD)
-                    break
+
+        def _got_hit():
+
+            self.health -= hit_damage
+            my_display.draw_upper_left(self.health)
+            if self.health <= 0:
+                statemachine.trigger(DEAD)
+                return True
+            else:
+                return False
+
+        await monitor_blaster(self._team, _got_hit)
 
 
 class Player(FlagAndPlayer):
