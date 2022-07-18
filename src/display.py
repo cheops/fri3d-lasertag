@@ -43,6 +43,8 @@ class Display:
     def __init__(self, team):
         self._team = team
         self._color = team_colors[self._team]
+
+    def draw_initial(self):
         self._draw_borders()
         self._draw_static_upper_left()
         self._draw_static_upper_right()
