@@ -1,6 +1,6 @@
 import time
 
-import st7789
+import st7789py as st7789
 from machine import Pin, SPI
 
 import chango_16 as font_16

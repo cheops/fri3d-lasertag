@@ -1,7 +1,7 @@
 from machine import SoftI2C, Pin, SPI, TouchPad
 from lis2hh12 import LIS2HH12, SF_G
 from neopixel import NeoPixel
-import st7789
+import st7789py as st7789
 import gc
 
 setup_ready = False

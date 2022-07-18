@@ -1,4 +1,4 @@
-import st7789
+import st7789py as st7789
 from hardware import blaster
 
 REX = 'REX'

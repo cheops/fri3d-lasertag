@@ -1,5 +1,5 @@
 import vga1_16x32 as font_32
-import st7789
+import st7789py as st7789
 import time
 import uasyncio as asyncio
 
