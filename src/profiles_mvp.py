@@ -40,8 +40,10 @@ class FlagAndPlayer(Profile):
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Practicing")
         self._my_display.draw_middle(0)
-        uasyncio.run(_monitor_button_simulate_event(statemachine, PRESTART))
-        uasyncio.run(self._monitor_blaster(statemachine))
+        t_button = uasyncio.create_task(_monitor_button_simulate_event(statemachine, PRESTART))
+        self._current_state_tasks.append(t_button)
+        t_blaster = uasyncio.create_task(self._monitor_blaster(statemachine))
+        self._current_state_tasks.append(t_blaster)
 
     def _hiding(self, statemachine):
         self.health = 100
@@ -49,30 +51,31 @@ class FlagAndPlayer(Profile):
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Hiding")
         blaster.blaster.set_trigger_action(disable=True)
-        uasyncio.run(self._monitor_countdown(hiding_time, statemachine))
+        t_countdown = uasyncio.create_task(self._monitor_countdown(hiding_time, statemachine))
+        self._current_state_tasks.append(t_countdown)
 
     def _playing(self, statemachine):
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Playing")
-        uasyncio.run(self._monitor_countdown(playing_time, statemachine))
-        uasyncio.run(self._monitor_blaster(statemachine))
+        t_countdown = uasyncio.create_task(self._monitor_countdown(playing_time, statemachine))
+        self._current_state_tasks.append(t_countdown)
+        t_blaster = uasyncio.create_task(self._monitor_blaster(statemachine))
+        self._current_state_tasks.append(t_blaster)
 
     def _finishing(self, statemachine):
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
-        uasyncio.run(_monitor_button_simulate_event(statemachine, BOOT))
+        t_button = uasyncio.create_task(_monitor_button_simulate_event(statemachine, PRESTART))
+        self._current_state_tasks.append(t_button)
 
     async def _monitor_countdown(self, countdown_seconds, statemachine):
         def handle_countdown_end():
             statemachine.trigger(COUNTDOWN_END)
 
-        def update_countdown_display(remaining_seconds):
-            self._my_display.draw_middle(remaining_seconds)
-
-        uasyncio.run(monitor_countdown(countdown_seconds, handle_countdown_end, update_countdown_display))
+        uasyncio.run(monitor_countdown(countdown_seconds, handle_countdown_end, self._my_display.draw_middle))
 
     async def _monitor_blaster(self, statemachine):
 
