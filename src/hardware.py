@@ -21,10 +21,8 @@ def _screen_setup():
         height=240,
         reset=prst,
         cs=pcs,
-        dc=pdc,
-        buffer_size=240 * 240 * 2)
+        dc=pdc)
 
-    screen.init()
     screen.fill(st7789.BLACK)
 
     return screen

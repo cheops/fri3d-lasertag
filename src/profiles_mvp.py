@@ -44,8 +44,7 @@ class FlagAndPlayer(Profile):
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Practicing")
         self._my_display.draw_middle(0)
-        t_button = uasyncio.create_task(_monitor_button_simulate_event(statemachine, PRESTART))
-        self._current_state_tasks.append(t_button)
+        uasyncio.run(_monitor_button_simulate_event(statemachine, PRESTART))
         t_blaster = uasyncio.create_task(self._monitor_blaster(statemachine))
         self._current_state_tasks.append(t_blaster)
 
@@ -55,16 +54,14 @@ class FlagAndPlayer(Profile):
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Hiding")
         blaster.blaster.set_trigger_action(disable=True)
-        t_countdown = uasyncio.create_task(self._monitor_countdown(hiding_time, statemachine))
-        self._current_state_tasks.append(t_countdown)
+        uasyncio.run(self._monitor_countdown(hiding_time, statemachine))
 
     def _playing(self, statemachine):
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Playing")
-        t_countdown = uasyncio.create_task(self._monitor_countdown(playing_time, statemachine))
-        self._current_state_tasks.append(t_countdown)
+        uasyncio.run(self._monitor_countdown(playing_time, statemachine))
         t_blaster = uasyncio.create_task(self._monitor_blaster(statemachine))
         self._current_state_tasks.append(t_blaster)
 
@@ -72,8 +69,7 @@ class FlagAndPlayer(Profile):
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
-        t_button = uasyncio.create_task(_monitor_button_simulate_event(statemachine, PRESTART))
-        self._current_state_tasks.append(t_button)
+        uasyncio.run(_monitor_button_simulate_event(statemachine, PRESTART))
 
     async def _monitor_countdown(self, countdown_seconds, statemachine):
         def handle_countdown_end():
