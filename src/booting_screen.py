@@ -84,6 +84,7 @@ class ProfilesList:
         self._touch_tasks = []
         self._current_start = 0
         self._chosen = False
+        tft.fill(st7789.BLACK)
         self._buttons()
         self._show()
 
@@ -143,6 +144,7 @@ class ProfilesList:
 
 
 def boot_screen_countdown(countdown_seconds):
+    tft.fill(st7789.BLACK)
     row = 0
     tft.text(font_32, 'to select', 0, row * font_32.HEIGHT)
     row += 1

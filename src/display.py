@@ -48,7 +48,6 @@ class Display:
         self._draw_borders()
         self._draw_static_upper_left()
         self._draw_static_upper_right()
-        self.draw_static_middle("Countdown")
         self._draw_static_bottom()
 
     def _draw_borders(self):

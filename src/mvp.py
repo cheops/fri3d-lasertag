@@ -23,7 +23,7 @@ transitions_mvp = [
     Transition(BOOT, FINISHING, BOOTING),
 ]
 
-hiding_time = 2 * 60
-playing_time = 5 * 60
+hiding_time = 10
+playing_time = 10
 hit_damage = 5
 hit_timeout = 3
