@@ -6,3 +6,4 @@ mvp_statemachine = StateMachine(player_buzz_profile,
                                 states_mvp,
                                 transitions_mvp,
                                 BOOTING)
+mvp_statemachine.start()

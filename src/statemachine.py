@@ -9,7 +9,6 @@ class StateMachine:
         self.states = [] if states is None else states
         self.transitions = [] if transitions is None else transitions
         self.state = initial
-        self.model.run(self.state, self)
 
     def set_new_model(self, new_model):
         self.model = new_model
@@ -17,16 +16,18 @@ class StateMachine:
     def add_transition(self, trigger, source, dest):
         self.transitions.append(Transition(trigger, source, dest))
 
-    def trigger(self, event):
-        for t in self.transitions:
-            if t.trigger.name == event.name and t.source.name == self.state.name:
-                self.state = t.destination
-                new_model = event.clear_new_model()
-                if new_model:
-                    self.model = new_model
-                self.model.stop_current_tasks()
-                self.model.run(self.state, self)
-                break
+    def start(self):
+        while True:
+            new_event = self.model.run(self.state)
+            print("model run finished, new_event", new_event)
+            for t in self.transitions:
+                if t.trigger.name == new_event.name and t.source.name == self.state.name:
+                    print(new_event, t.source.name, t.destination)
+                    self.state = t.destination
+                    new_model = new_event.clear_new_model()
+                    if new_model:
+                        self.model = new_model
+                    break
 
 
 class State:

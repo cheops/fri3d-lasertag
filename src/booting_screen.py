@@ -63,9 +63,9 @@ class Touch:
             await asyncio.sleep_ms(Touch.sample_time)
 
     def deinit(self):
+        self._run.cancel()
         neopixels[self._led] = (0, 0, 0)
         neopixels.write()
-        self._run.cancel()
 
 
 class ProfilesList:
@@ -164,19 +164,16 @@ def boot_screen_countdown(countdown_seconds):
         time.sleep(1)
 
 
-async def monitor(statemachine):
+async def monitor(set_new_event_fnc, initial_profile):
     boot_screen_countdown(3)
     # quick check, if button is not pressed, move on
     if boot_button.value() == 1:
         print('button released initially')
-        if statemachine:
-            statemachine.trigger(CONFIRM_PROFILE)
+        if set_new_event_fnc:
+            set_new_event_fnc(CONFIRM_PROFILE)
         return
 
-    model = None
-    if statemachine:
-        model = statemachine.model
-    profiles_list = ProfilesList(model)
+    profiles_list = ProfilesList(initial_profile)
 
     last_button_value = boot_button.value()
     while True:
@@ -186,8 +183,8 @@ async def monitor(statemachine):
             print('button released')
             profiles_list.ok()
             profiles_list.stop_touch_tasks()
-            if statemachine:
-                statemachine.trigger(CONFIRM_PROFILE)
+            if set_new_event_fnc:
+                set_new_event_fnc(CONFIRM_PROFILE)
             break
         if new_value != last_button_value and new_value == 0:
             last_button_value = new_value
@@ -197,8 +194,8 @@ async def monitor(statemachine):
             print('profile chosen')
             profiles_list.ok()
             profiles_list.stop_touch_tasks()
-            if statemachine:
-                statemachine.trigger(CONFIRM_PROFILE)
+            if set_new_event_fnc:
+                set_new_event_fnc(CONFIRM_PROFILE)
             break
 
         await asyncio.sleep_ms(10)
