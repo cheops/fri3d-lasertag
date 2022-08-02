@@ -73,7 +73,10 @@ class FlagAndPlayer(Profile):
 
         def _got_hit():
             """"return True when dead, False otherwise"""
-            self.health -= hit_damage
+            if self.health > 0:
+                self.health -= hit_damage
+            if self.health < 0:
+                self.health = 0
             self._my_display.draw_upper_left(self.health)
             if self.health <= 0:
                 self.set_new_event(DEAD)
@@ -90,8 +93,10 @@ class Flag(FlagAndPlayer):
         self._my_display = DisplayFlag(self._team)
 
     def _practicing(self):
-        blaster.blaster.set_team(team_blaster[self._team])
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         blaster.blaster.set_trigger_action(disable=True)
+        self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Practicing")
@@ -154,8 +159,10 @@ class Player(FlagAndPlayer):
         self._my_display: DisplayPlayer = DisplayPlayer(self._team)
 
     def _practicing(self):
-        blaster.blaster.set_team(team_blaster[self._team])
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         blaster.blaster.set_trigger_action(disable=False)
+        self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_upper_right(100)

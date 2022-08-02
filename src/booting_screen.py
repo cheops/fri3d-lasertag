@@ -3,7 +3,7 @@ import st7789py as st7789
 import time
 import uasyncio as asyncio
 
-from hardware import neopixels, tft, touch_0, touch_1, touch_2, boot_button
+from hardware import neopixels_3, tft, touch_0, touch_1, touch_2, boot_button
 from mvp import CONFIRM_PROFILE
 from profiles_common import Profile
 
@@ -36,10 +36,10 @@ class Touch:
         rel_level = max(self.touch.read() - self.trigger_level, 0)
         # print(self._led, rel_level)
         if rel_level > 0:
-            neopixels[self._led] = (50 - min(50, rel_level), 0, 15)
+            neopixels_3[self._led] = (50 - min(50, rel_level), 0, 15)
         else:
-            neopixels[self._led] = (0, 50, 0)
-        neopixels.write()
+            neopixels_3[self._led] = (0, 50, 0)
+        neopixels_3.write()
         return self.touch.read() < self.trigger_level
 
     # Return current state of switch (0 = pressed)
@@ -64,8 +64,8 @@ class Touch:
 
     def deinit(self):
         self._run.cancel()
-        neopixels[self._led] = (0, 0, 0)
-        neopixels.write()
+        neopixels_3[self._led] = (0, 0, 0)
+        neopixels_3.write()
 
 
 class ProfilesList:

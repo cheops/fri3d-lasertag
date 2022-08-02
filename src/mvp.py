@@ -24,6 +24,5 @@ transitions_mvp = [
 ]
 
 hiding_time = 10
-playing_time = 10
-hit_damage = 5
-hit_timeout = 3
+playing_time = 60*2
+hit_damage = 10

@@ -1,4 +1,4 @@
-import st7789py as st7789
+import st7789
 import time
 
 from teams import team_colors, teams
@@ -43,6 +43,8 @@ class Display:
     def __init__(self, team):
         self._team = team
         self._color = team_colors[self._team]
+        self._prev_upper_left_len_pixels = 0
+        self._prev_middle_len_pixels = 0
 
     def draw_initial(self):
         self._draw_borders()
@@ -72,7 +74,13 @@ class Display:
         tft.write(font_16, "Health%", 8 + 4, 14, self._color, self._bg_color)
 
     def draw_upper_left(self, health):
+        health_str = str(health)
         tft.write(font_32, str(health), self._width + 18, 37, self._color, self._bg_color)
+        upper_left_len_pixels = tft.write_len(font_32, health_str)
+        diff = self._prev_upper_left_len_pixels - upper_left_len_pixels
+        if diff > 0:
+            tft.fill_rect(self._width + 18 + upper_left_len_pixels, 37, diff, font_32.HEIGHT, self._bg_color)
+        self._prev_upper_left_len_pixels = upper_left_len_pixels
 
     def _draw_static_upper_right(self):
         pass
@@ -85,8 +93,12 @@ class Display:
     def draw_middle(self, countdown_seconds):
         countdown = time.localtime(countdown_seconds)
         countdown_str = str(countdown[4]) + ":" + '{:0>2}'.format(countdown[5])
-        tft.fill_rect(self._width, 121, 240 - self._width * 2, font_64.HEIGHT, self._bg_color)
         tft.write(font_64, countdown_str, self._width + 20, 121, self._color, self._bg_color)
+        middle_len_pixels = tft.write_len(font_64, countdown_str)
+        diff = self._prev_middle_len_pixels - middle_len_pixels
+        if diff > 0:
+            tft.fill_rect(self._width + 20 + middle_len_pixels, 121, diff, font_64.HEIGHT, self._bg_color)
+        self._prev_middle_len_pixels = middle_len_pixels
 
     def _draw_static_bottom(self):
         # bottom bg_color
@@ -113,6 +125,7 @@ class DisplayPlayer(Display):
         tft.write(font_16, "Ammo%", 120 + 4 + 6, 14, self._color, self._bg_color)
 
     def draw_upper_right(self, ammo):
+        pixel_length = tft.write_len(font_16, str(ammo))
         tft.write(font_32, str(ammo), 120 + int(self._width / 2) + 18, 37, self._color, self._bg_color)
 
     def _draw_static_bottom(self):

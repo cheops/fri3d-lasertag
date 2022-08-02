@@ -1,8 +1,21 @@
 from machine import SoftI2C, Pin, SPI, TouchPad
 from lis2hh12 import LIS2HH12, SF_G
 from neopixel import NeoPixel
-import st7789py as st7789
+from time import sleep
 import gc
+
+try:
+    import st7789
+    compiled_disp_lib = True
+    print('imported st7789 native fast lib')
+except ImportError as e1:
+    try:
+        import st7789py
+        compiled_disp_lib = False
+        print('imported st7789py micropython slow lib')
+    except ImportError:
+        print('missing display library st7789 or st7789py')
+        raise e1
 
 setup_ready = False
 
@@ -15,13 +28,26 @@ def _screen_setup():
 
     gc.collect()  # Precaution before instantiating framebuffer
 
-    screen = st7789.ST7789(
-        spi=spi,
-        width=240,
-        height=240,
-        reset=prst,
-        cs=pcs,
-        dc=pdc)
+    if compiled_disp_lib:
+        screen = st7789.ST7789(
+            spi=spi,
+            width=240,
+            height=240,
+            reset=prst,
+            cs=pcs,
+            dc=pdc,
+            buffer_size=240 * 240 * 2)
+        sleep(0.2)
+        screen.init()
+    else:
+        screen = st7789.ST7789(
+            spi=spi,
+            width=240,
+            height=240,
+            reset=prst,
+            cs=pcs,
+            dc=pdc)
+        sleep(0.2)
 
     screen.fill(st7789.BLACK)
 
@@ -35,24 +61,30 @@ def _turn_on_backlight():
     imu.enable_act_int()
 
 
-def _neopixels_setup():
+def _neopixels_setup(amount):
     pin = Pin(2, Pin.OUT)
-    neopixels = NeoPixel(pin, 3)
+    neopixels = NeoPixel(pin, amount)
     return neopixels
 
 
 if not setup_ready:
-    # _turn_on_backlight()
+    _turn_on_backlight()
 
     # can be used as globals
     # import hardware
     # hardware.tft
     tft = _screen_setup()
-    neopixels = _neopixels_setup()
+
+    neopixels_3 = _neopixels_setup(3)
+    neopixels_5 = _neopixels_setup(5)
+
     boot_button = Pin(0, Pin.IN)
+
     touch_0 = TouchPad(Pin(27))
     touch_1 = TouchPad(Pin(14))
     touch_2 = TouchPad(Pin(13))
+
+    buzzer_pin = Pin(32, Pin.OUT)
 
     import blaster
     #result = blaster.blaster.start_chatter()
