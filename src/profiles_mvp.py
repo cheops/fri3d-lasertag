@@ -96,7 +96,8 @@ class Flag(FlagAndPlayer):
     def _practicing(self):
         if not blaster.blaster.set_team(team_blaster[self._team]):
             blaster.blaster.set_team(team_blaster[self._team])
-        blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_trigger_action(disable=True):
+            blaster.blaster.set_trigger_action(disable=True)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -113,7 +114,8 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
     def _hiding(self):
-        blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_trigger_action(disable=True):
+            blaster.blaster.set_trigger_action(disable=True)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -126,7 +128,8 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _playing(self):
-        blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_trigger_action(disable=True):
+            blaster.blaster.set_trigger_action(disable=True)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -145,7 +148,8 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
-        blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_trigger_action(disable=True):
+            blaster.blaster.set_trigger_action(disable=True)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
@@ -167,7 +171,8 @@ class Player(FlagAndPlayer):
     def _practicing(self):
         if not blaster.blaster.set_team(team_blaster[self._team]):
             blaster.blaster.set_team(team_blaster[self._team])
-        blaster.blaster.set_trigger_action(disable=False)
+        if not blaster.blaster.set_trigger_action(disable=False):
+            blaster.blaster.set_trigger_action(disable=False)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -185,7 +190,8 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
     def _hiding(self):
-        blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_trigger_action(disable=True):
+            blaster.blaster.set_trigger_action(disable=True)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -199,7 +205,8 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _playing(self):
-        blaster.blaster.set_trigger_action(disable=False)
+        if not blaster.blaster.set_trigger_action(disable=False):
+            blaster.blaster.set_trigger_action(disable=False)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -219,7 +226,8 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
-        blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_trigger_action(disable=True):
+            blaster.blaster.set_trigger_action(disable=True)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_upper_right(100)
