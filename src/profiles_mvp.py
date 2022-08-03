@@ -19,7 +19,7 @@ class FlagAndPlayer(Profile):
         self.name = self.__class__.__name__ + ' ' + team
         self._team = team
         self.health = 100
-        self.remaining_seconds = 0
+        self._remaining_seconds = 0
         self._current_state_tasks = []
         self._new_event = None
 
@@ -153,7 +153,7 @@ class Flag(FlagAndPlayer):
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
-        self._my_display.draw_middle(self.remaining_seconds)
+        self._my_display.draw_middle(self._remaining_seconds)
 
         def button_press():
             self.set_new_event(BOOT)
@@ -232,7 +232,7 @@ class Player(FlagAndPlayer):
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_upper_right(100)
         self._my_display.draw_static_middle("Finishing")
-        self._my_display.draw_middle(self.remaining_seconds)
+        self._my_display.draw_middle(self._remaining_seconds)
 
         def button_press():
             self.set_new_event(BOOT)
