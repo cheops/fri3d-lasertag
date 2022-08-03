@@ -1,15 +1,14 @@
 import uasyncio
-from time import sleep
 
 from hardware import blaster, boot_button
 from profiles_common import Profile
 from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING, PRESTART, BOOT
 from mvp import DEAD, COUNTDOWN_END
-from mvp import playing_time, hiding_time, hit_damage
+from mvp import playing_time, hiding_time, hit_damage, hit_timeout, practicing_channel, playing_channel, invalid_channel
 from display import Display, DisplayFlag, DisplayPlayer
 from teams import REX, GIGGLE, BUZZ, team_blaster
 from booting_screen import monitor as monitor_booting
-from monitor_blaster import monitor_blaster
+from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
 from monitor_countdown import monitor_countdown
 
 
@@ -71,7 +70,13 @@ class FlagAndPlayer(Profile):
     def _finishing(self):
         pass
 
-    async def _monitor_blaster(self):
+
+class Flag(FlagAndPlayer):
+    def __init__(self, team):
+        super().__init__(team)
+        self._my_display = DisplayFlag(self._team)
+
+    async def _monitor_badge(self, channel):
 
         def _got_hit():
             """"return True when dead, False otherwise"""
@@ -80,34 +85,31 @@ class FlagAndPlayer(Profile):
             if self.health < 0:
                 self.health = 0
             self._my_display.draw_upper_left(self.health)
+            uasyncio.sleep(hit_timeout)
             if self.health <= 0:
-                sleep(5)  # sleep long enough for the blaster to be responsive
                 self.set_new_event(DEAD)
                 return True
             else:
                 return False
 
-        await monitor_blaster(self._team, _got_hit)
-
-
-class Flag(FlagAndPlayer):
-    def __init__(self, team):
-        super().__init__(team)
-        self._my_display = DisplayFlag(self._team)
+        await monitor_badge(self._team, channel, _got_hit)
 
     def _practicing(self):
         if not blaster.blaster.set_team(team_blaster[self._team]):
             blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=True):
             blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_channel(practicing_channel):
+            blaster.blaster.set_channel(practicing_channel)
+        clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Practicing")
         self._my_display.draw_middle(0)
 
-        t_blaster = uasyncio.create_task(self._monitor_blaster())
-        self._current_state_tasks.append(t_blaster)
+        t_badge = uasyncio.create_task(self._monitor_badge(practicing_channel))
+        self._current_state_tasks.append(t_badge)
 
         def button_press():
             self.set_new_event(PRESTART)
@@ -116,8 +118,12 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
     def _hiding(self):
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=True):
             blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_channel(invalid_channel):
+            blaster.blaster.set_channel(invalid_channel)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -130,14 +136,19 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _playing(self):
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=True):
             blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_channel(playing_channel):
+            blaster.blaster.set_channel(playing_channel)
+        clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Playing")
-        t_blaster = uasyncio.create_task(self._monitor_blaster())
-        self._current_state_tasks.append(t_blaster)
+        t_badge = uasyncio.create_task(self._monitor_badge(playing_channel))
+        self._current_state_tasks.append(t_badge)
 
         def handle_countdown_end():
             self.set_new_event(COUNTDOWN_END)
@@ -150,8 +161,12 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=True):
             blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_channel(invalid_channel):
+            blaster.blaster.set_channel(invalid_channel)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
@@ -170,11 +185,31 @@ class Player(FlagAndPlayer):
         super().__init__(team)
         self._my_display: DisplayPlayer = DisplayPlayer(self._team)
 
+    async def _monitor_blaster(self):
+
+        def _got_hit():
+            """"return True when dead, False otherwise"""
+            if self.health > 0:
+                self.health -= hit_damage
+            if self.health < 0:
+                self.health = 0
+            self._my_display.draw_upper_left(self.health)
+            uasyncio.sleep(hit_timeout)  # sleep long enough for the blaster to be responsive
+            if self.health <= 0:
+                self.set_new_event(DEAD)
+                return True
+            else:
+                return False
+
+        await monitor_blaster(self._team, _got_hit)
+
     def _practicing(self):
         if not blaster.blaster.set_team(team_blaster[self._team]):
             blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=False):
             blaster.blaster.set_trigger_action(disable=False)
+        if not blaster.blaster.set_channel(practicing_channel):
+            blaster.blaster.set_channel(practicing_channel)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -192,8 +227,12 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
     def _hiding(self):
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=True):
             blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_channel(invalid_channel):
+            blaster.blaster.set_channel(invalid_channel)
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -207,8 +246,13 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _playing(self):
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=False):
             blaster.blaster.set_trigger_action(disable=False)
+        if not blaster.blaster.set_channel(playing_channel):
+            blaster.blaster.set_channel(playing_channel)
+        clear_blaster_buffer()
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -228,8 +272,12 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
+        if not blaster.blaster.set_team(team_blaster[self._team]):
+            blaster.blaster.set_team(team_blaster[self._team])
         if not blaster.blaster.set_trigger_action(disable=True):
             blaster.blaster.set_trigger_action(disable=True)
+        if not blaster.blaster.set_channel(invalid_channel):
+            blaster.blaster.set_channel(invalid_channel)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_upper_right(100)
