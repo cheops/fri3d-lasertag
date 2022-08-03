@@ -1,7 +1,6 @@
 from machine import SoftI2C, Pin, SPI, TouchPad
 from lis2hh12 import LIS2HH12, SF_G
 from neopixel import NeoPixel
-from time import sleep
 import gc
 import st7789
 
