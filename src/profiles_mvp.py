@@ -1,4 +1,5 @@
 import uasyncio
+from time import sleep
 
 from hardware import blaster, boot_button
 from profiles_common import Profile
@@ -80,6 +81,7 @@ class FlagAndPlayer(Profile):
                 self.health = 0
             self._my_display.draw_upper_left(self.health)
             if self.health <= 0:
+                sleep(5)  # sleep long enough for the blaster to be responsive
                 self.set_new_event(DEAD)
                 return True
             else:
