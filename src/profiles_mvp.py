@@ -86,7 +86,7 @@ class FlagAndPlayer(Profile):
                 self.health = 0
             self._my_display.draw_upper_left(self.health)
             if self.health <= 0:
-                await self._effect_R2D2()
+                uasyncio.run(self._effect_R2D2())
                 self.set_new_event(DEAD)
                 return True
             else:
