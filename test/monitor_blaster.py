@@ -5,6 +5,7 @@ my_team = blaster.Team.rex
 
 blaster.blaster.set_team(my_team)
 
+
 async def monitor_blaster():
     while True:
         await uasyncio.sleep(0.1)

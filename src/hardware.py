@@ -3,53 +3,26 @@ from lis2hh12 import LIS2HH12, SF_G
 from neopixel import NeoPixel
 from time import sleep
 import gc
-
-try:
-    import st7789
-    compiled_disp_lib = True
-    print('imported st7789 native fast lib')
-except ImportError as e1:
-    try:
-        import st7789py
-        compiled_disp_lib = False
-        print('imported st7789py micropython slow lib')
-    except ImportError:
-        print('missing display library st7789 or st7789py')
-        raise e1
+import st7789
 
 setup_ready = False
 
 
 def _screen_setup():
     spi = SPI(2, baudrate=40000000, polarity=1)
-    prst = Pin(32, Pin.OUT)
     pcs = Pin(5, Pin.OUT)
     pdc = Pin(33, Pin.OUT)
 
     gc.collect()  # Precaution before instantiating framebuffer
 
-    if compiled_disp_lib:
-        screen = st7789.ST7789(
-            spi=spi,
-            width=240,
-            height=240,
-            reset=prst,
-            cs=pcs,
-            dc=pdc,
-            buffer_size=240 * 240 * 2)
-        sleep(0.2)
-        screen.init()
-    else:
-        screen = st7789.ST7789(
-            spi=spi,
-            width=240,
-            height=240,
-            reset=prst,
-            cs=pcs,
-            dc=pdc)
-        sleep(0.2)
-
-    screen.fill(st7789.BLACK)
+    screen = st7789.ST7789(
+        spi=spi,
+        width=240,
+        height=240,
+        cs=pcs,
+        dc=pdc,
+        buffer_size=240 * 240 * 2)
+    screen.init()
 
     return screen
 

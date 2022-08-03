@@ -1,6 +1,6 @@
 import time
 
-import st7789py as st7789
+import st7789
 from machine import Pin, SPI
 
 import chango_16 as font_16
@@ -11,19 +11,17 @@ spi = SPI(2, baudrate=40000000, polarity=1)
 
 pcs = Pin(5, Pin.OUT)
 pdc = Pin(33, Pin.OUT)
-prst = Pin(32, Pin.OUT)
 
 tft = st7789.ST7789(
-    spi,
-    240,
-    240,
-    reset=prst,
+    spi=spi,
+    width=240,
+    height=240,
     cs=pcs,
-    dc=pdc)
+    dc=pdc,
+    buffer_size=240 * 240 * 2)
 
 tft.init()
 
-tft.fill(st7789.BLACK)
 
 
 def draw_borders(width, color, bg_color):

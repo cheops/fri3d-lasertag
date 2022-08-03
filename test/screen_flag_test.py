@@ -2,50 +2,29 @@ import time
 import gc
 from machine import Pin, SPI
 
-try:
-    import st7789
-    compiled_disp_lib = True
-except ImportError as e1:
-    try:
-        import st7789py as st7789
-        compiled_disp_lib = False
-    except ImportError:
-        print('missing display library st7789 or st7789py')
-        raise e1
+import st7789
 
 import chango_16 as font_16
 import chango_32 as font_32
 import chango_64 as font_64
 
 spi = SPI(2, baudrate=40000000, polarity=1)
-prst = Pin(32, Pin.OUT)
 pcs = Pin(5, Pin.OUT)
 pdc = Pin(33, Pin.OUT)
 
 gc.collect()  # Precaution before instantiating framebuffer
 
-if compiled_disp_lib:
-    tft = st7789.ST7789(
-        spi=spi,
-        width=240,
-        height=240,
-        reset=prst,
-        cs=pcs,
-        dc=pdc,
-        buffer_size=240 * 240 * 2)
-    tft.init()
-else:
-    tft = st7789.ST7789(
-        spi=spi,
-        width=240,
-        height=240,
-        reset=prst,
-        cs=pcs,
-        dc=pdc)
-
-tft.fill(st7789.BLACK)
+tft = st7789.ST7789(
+    spi=spi,
+    width=240,
+    height=240,
+    cs=pcs,
+    dc=pdc,
+    buffer_size=240 * 240 * 2)
+tft.init()
 
 prev_middle_len_pixels = 0
+
 
 def draw_borders(width, color, bg_color):
     for i in range(0, width):
