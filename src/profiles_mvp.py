@@ -10,7 +10,6 @@ from teams import REX, GIGGLE, BUZZ, team_blaster
 from booting_screen import monitor as monitor_booting
 from monitor_blaster import monitor_blaster
 from monitor_countdown import monitor_countdown
-from effects import effect_R2D2, effect_clean
 
 
 class FlagAndPlayer(Profile):
@@ -71,11 +70,6 @@ class FlagAndPlayer(Profile):
     def _finishing(self):
         pass
 
-    async def _effect_R2D2(self):
-        effect_R2D2()
-        await uasyncio.sleep(0.5)
-        effect_clean()
-
     async def _monitor_blaster(self):
 
         def _got_hit():
@@ -86,7 +80,6 @@ class FlagAndPlayer(Profile):
                 self.health = 0
             self._my_display.draw_upper_left(self.health)
             if self.health <= 0:
-                uasyncio.run(self._effect_R2D2())
                 self.set_new_event(DEAD)
                 return True
             else:
@@ -115,7 +108,6 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_blaster)
 
         def button_press():
-            uasyncio.run(self._effect_R2D2())
             self.set_new_event(PRESTART)
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
@@ -146,7 +138,6 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_blaster)
 
         def handle_countdown_end():
-            uasyncio.run(self._effect_R2D2())
             self.set_new_event(COUNTDOWN_END)
 
         def handle_countdown_update(remaining_seconds):
@@ -193,7 +184,6 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_blaster)
 
         def button_press():
-            uasyncio.run(self._effect_R2D2())
             self.set_new_event(PRESTART)
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
@@ -226,7 +216,6 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_blaster)
 
         def handle_countdown_end():
-            uasyncio.run(self._effect_R2D2())
             self.set_new_event(COUNTDOWN_END)
 
         def handle_countdown_update(remaining_seconds):
