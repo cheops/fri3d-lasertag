@@ -19,6 +19,7 @@ class FlagAndPlayer(Profile):
         self.name = self.__class__.__name__ + ' ' + team
         self._team = team
         self.health = 100
+        self.remaining_seconds = 0
         self._current_state_tasks = []
         self._new_event = None
 
@@ -136,7 +137,11 @@ class Flag(FlagAndPlayer):
         def handle_countdown_end():
             self.set_new_event(COUNTDOWN_END)
 
-        t_countdown = uasyncio.create_task(monitor_countdown(playing_time, handle_countdown_end, self._my_display.draw_middle))
+        def handle_countdown_update(remaining_seconds):
+            self._my_display.draw_middle(remaining_seconds)
+            self._remaining_seconds = remaining_seconds
+
+        t_countdown = uasyncio.create_task(monitor_countdown(playing_time, handle_countdown_end, handle_countdown_update))
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
@@ -144,6 +149,7 @@ class Flag(FlagAndPlayer):
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
+        self._my_display.draw_middle(self.remaining_seconds)
 
         def button_press():
             self.set_new_event(BOOT)
@@ -205,7 +211,11 @@ class Player(FlagAndPlayer):
         def handle_countdown_end():
             self.set_new_event(COUNTDOWN_END)
 
-        t_countdown = uasyncio.create_task(monitor_countdown(playing_time, handle_countdown_end, self._my_display.draw_middle))
+        def handle_countdown_update(remaining_seconds):
+            self._my_display.draw_middle(remaining_seconds)
+            self._remaining_seconds = remaining_seconds
+
+        t_countdown = uasyncio.create_task(monitor_countdown(playing_time, handle_countdown_end, handle_countdown_update))
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
@@ -214,6 +224,7 @@ class Player(FlagAndPlayer):
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_upper_right(100)
         self._my_display.draw_static_middle("Finishing")
+        self._my_display.draw_middle(self.remaining_seconds)
 
         def button_press():
             self.set_new_event(BOOT)
