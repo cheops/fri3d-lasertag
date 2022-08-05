@@ -1,4 +1,7 @@
-from time import sleep, sleep_ms
+# more song ideas
+# https://github.com/robsoncouto/arduino-songs
+
+from time import sleep_ms
 import _thread
 import uasyncio
 import gc

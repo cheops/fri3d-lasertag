@@ -26,7 +26,7 @@ transitions_mvp = [
 hiding_time = 10
 playing_time = 60*2
 hit_damage = 30
-hit_timeout = 3
+hit_timeout = 5
 
 practicing_channel = 2
 playing_channel = 3
