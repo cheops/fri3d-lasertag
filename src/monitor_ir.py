@@ -17,7 +17,7 @@ async def monitor_blaster(my_team, got_hit_fnc):
         if data_packet is not None \
                 and data_packet.command == Command.shoot \
                 and data_packet.trigger is False \
-                and data_packet.team_str != team_blaster[my_team]:
+                and data_packet.team != team_blaster[my_team]:
             # incoming enemy fire
             dead = got_hit_fnc()
             if dead:
@@ -37,7 +37,7 @@ async def monitor_badge(my_team, channel, got_hit_fnc):
         if data_packet is not None \
                 and data_packet.command == Command.shoot \
                 and data_packet.trigger is True \
-                and data_packet.team_str != team_blaster[my_team]:
+                and data_packet.team != team_blaster[my_team]:
             # incoming enemy fire
             dead = got_hit_fnc()
             if dead:
