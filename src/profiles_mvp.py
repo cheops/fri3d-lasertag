@@ -1,4 +1,5 @@
 import uasyncio
+from time import sleep
 
 from hardware import blaster, boot_button
 from profiles_common import Profile
@@ -85,7 +86,8 @@ class Flag(FlagAndPlayer):
             if self.health < 0:
                 self.health = 0
             self._my_display.draw_upper_left(self.health)
-            uasyncio.sleep(hit_timeout)
+            uasyncio.wait_for(sleep(hit_timeout), hit_timeout + 1)
+            clear_badge_buffer()
             if self.health <= 0:
                 self.set_new_event(DEAD)
                 return True
@@ -95,12 +97,9 @@ class Flag(FlagAndPlayer):
         await monitor_badge(self._team, channel, _got_hit)
 
     def _practicing(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=True):
-            blaster.blaster.set_trigger_action(disable=True)
-        if not blaster.blaster.set_channel(practicing_channel):
-            blaster.blaster.set_channel(practicing_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (practicing_channel, )), hit_timeout)
         clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
@@ -118,12 +117,10 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
     def _hiding(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=True):
-            blaster.blaster.set_trigger_action(disable=True)
-        if not blaster.blaster.set_channel(invalid_channel):
-            blaster.blaster.set_channel(invalid_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team], )), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel, )), hit_timeout)
+        clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -136,12 +133,9 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _playing(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=True):
-            blaster.blaster.set_trigger_action(disable=True)
-        if not blaster.blaster.set_channel(playing_channel):
-            blaster.blaster.set_channel(playing_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (playing_channel,)), hit_timeout)
         clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
@@ -161,12 +155,9 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=True):
-            blaster.blaster.set_trigger_action(disable=True)
-        if not blaster.blaster.set_channel(invalid_channel):
-            blaster.blaster.set_channel(invalid_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel, )), hit_timeout)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
@@ -194,7 +185,8 @@ class Player(FlagAndPlayer):
             if self.health < 0:
                 self.health = 0
             self._my_display.draw_upper_left(self.health)
-            uasyncio.sleep(hit_timeout)  # sleep long enough for the blaster to be responsive
+            uasyncio.wait_for(sleep(hit_timeout), hit_timeout + 1)  # sleep long enough for the blaster to be responsive
+            clear_blaster_buffer()
             if self.health <= 0:
                 self.set_new_event(DEAD)
                 return True
@@ -204,12 +196,10 @@ class Player(FlagAndPlayer):
         await monitor_blaster(self._team, _got_hit)
 
     def _practicing(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=False):
-            blaster.blaster.set_trigger_action(disable=False)
-        if not blaster.blaster.set_channel(practicing_channel):
-            blaster.blaster.set_channel(practicing_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': False}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (practicing_channel,)), hit_timeout)
+        clear_blaster_buffer()
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -227,12 +217,10 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
     def _hiding(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=True):
-            blaster.blaster.set_trigger_action(disable=True)
-        if not blaster.blaster.set_channel(invalid_channel):
-            blaster.blaster.set_channel(invalid_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel,)), hit_timeout)
+        clear_blaster_buffer()
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
@@ -246,12 +234,9 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _playing(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=False):
-            blaster.blaster.set_trigger_action(disable=False)
-        if not blaster.blaster.set_channel(playing_channel):
-            blaster.blaster.set_channel(playing_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': False}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (playing_channel,)), hit_timeout)
         clear_blaster_buffer()
         self.health = 100
         self._my_display.draw_initial()
@@ -272,12 +257,9 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _finishing(self):
-        if not blaster.blaster.set_team(team_blaster[self._team]):
-            blaster.blaster.set_team(team_blaster[self._team])
-        if not blaster.blaster.set_trigger_action(disable=True):
-            blaster.blaster.set_trigger_action(disable=True)
-        if not blaster.blaster.set_channel(invalid_channel):
-            blaster.blaster.set_channel(invalid_channel)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel,)), hit_timeout)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_upper_right(100)
@@ -289,6 +271,13 @@ class Player(FlagAndPlayer):
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
+
+
+def to_blaster_with_retry(fnc, args=(), kwargs=None):
+    if kwargs is None:
+        kwargs = {}
+    while not fnc(*args, **kwargs):
+        sleep(0.1)
 
 
 async def _monitor_button_press(button_press_fnc):
