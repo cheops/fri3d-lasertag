@@ -48,8 +48,8 @@ def get_badge_shot(channel):
     p = blaster.blaster._ir_link.read_packet()
     if not p:
         return
-    if channel != -1 and not (p._raw & 0b1111000000000000) >> 12 == channel:
-        return
     if p.command not in [Command.heal, Command.shoot]:
+        return
+    if channel != -1 and not p.parameter == channel:
         return
     return p
