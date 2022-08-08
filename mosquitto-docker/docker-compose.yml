@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  mosquitto:
+    container_name: mosquitto_container
+    build: mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto-config:/mosquitto/config
+      - mosquitto-data:/mosquitto/data
+    restart: unless-stopped
+
+volumes:
+  mosquitto-config:
+  mosquitto-data:
+
+
