@@ -1,0 +1,19 @@
+topics:
+    subsriber topics for game stats
+        topic_flag = "flag"                             data = blueC_100H_aliveS_456T_5385G
+        topic_player = "player"                         data = greenC_00AA11BB22C6I_0H_deathS_14HI_58SH_15T_5385G_
+
+    publish topics for game prestart
+        topic_flag_pub_prestart = "flag_prestart"       data = flag_60HT_300PT_30HD_2PRC_4PLC_0374G_
+        topic_player_pub_prestart = "player_prestart"   data = player_60HT_300PT_30HD_5HT_0SA_2PRC_4PLC_0374G_
+
+    publish topic for game stop
+        topic_stop = "device_stop"                      data = stop
+
+other samples
+    greenC_00AA11BB22C6I_0H_deathS_14HI_58SH_15T_5385G_
+    blueC_100H_aliveS_456T_5385G
+
+    blueC_0H_deathS_13T_3091G
+    redC_70H_aliveS_0T_3091G
+    greenC_56H_aliveS_0T_3091G
