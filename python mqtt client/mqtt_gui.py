@@ -1,10 +1,6 @@
-import paho
 from paho.mqtt import client as mqtt_client
-import time
 from tkinter import *
-import tkinter as tk
 
-from tkinter import ttk
 import threading
 from dataclasses import dataclass
 import datetime
@@ -55,8 +51,8 @@ program_running = True
 
 #broker details
 #broker = "192.168.1.206"
-broker = "192.168.0.156"
-port = 1884
+broker = "192.168.0.140"
+port = 1883
 
 #mss niet nodig?
 client = 0
