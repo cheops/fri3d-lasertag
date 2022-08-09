@@ -1,3 +1,6 @@
 [submodule "Timeblaster"]
 	path = Timeblaster
 	url = https://github.com/area3001/Timeblaster.git
+[submodule "micropython-mqtt"]
+	path = micropython-mqtt
+	url = https://github.com/peterhinch/micropython-mqtt.git
