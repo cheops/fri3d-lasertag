@@ -99,37 +99,37 @@ def close_client():
     client.close()
 
 
-c_hiding_time = re.compile(r'(?P<hiding_time>[0-9]+)HT_')
-c_playing_time = re.compile(r'(?P<playing_time>[0-9]+)PT_')
-c_hit_damage = re.compile(r'(?P<hit_damage>[0-9]+)HD_')
-c_hit_timeout = re.compile(r'(?P<hit_timeout>[0-9]+)HTO_')
-c_shot_ammo = re.compile(r'(?P<shot_ammo>[0-9]+)SA_')
-c_practicing_channel = re.compile(r'(?P<practicing_channel>[0-9]+)PRC_')
-c_playing_channel = re.compile(r'(?P<playing_channel>[0-9]+)PLC_')
-c_game_id = re.compile(r'(?P<game_id>[0-9]+)G_')
+c_hiding_time = re.compile(r'([0-9]+)HT_')
+c_playing_time = re.compile(r'([0-9]+)PT_')
+c_hit_damage = re.compile(r'([0-9]+)HD_')
+c_hit_timeout = re.compile(r'([0-9]+)HTO_')
+c_shot_ammo = re.compile(r'([0-9]+)SA_')
+c_practicing_channel = re.compile(r'([0-9]+)PRC_')
+c_playing_channel = re.compile(r'([0-9]+)PLC_')
+c_game_id = re.compile(r'([0-9]+)G_')
 
 
 def get_hiding_time(player_prestart):
     m = c_hiding_time.search(player_prestart)
-    return m.group('hiding_time')
+    return m.group(1)
 def get_playing_time(player_prestart):
     m = c_playing_time.search(player_prestart)
-    return m.group('playing_time')
+    return m.group(1)
 def get_hit_damage(player_prestart):
     m = c_hit_damage.search(player_prestart)
-    return m.group('hit_damage')
+    return m.group(1)
 def get_hit_timeout(player_prestart):
     m = c_hit_timeout.search(player_prestart)
-    return m.group('hit_timeout')
+    return m.group(1)
 def get_shot_ammo(player_prestart):
     m = c_shot_ammo.search(player_prestart)
-    return m.group('shot_ammo')
+    return m.group(1)
 def get_practicing_channel(player_prestart):
     m = c_practicing_channel.search(player_prestart)
-    return m.group('practicing_channel')
+    return m.group(1)
 def get_playing_channel(player_prestart):
     m = c_playing_channel.search(player_prestart)
-    return m.group('playing_channel')
+    return m.group(1)
 def get_game_id(player_prestart):
     m = c_game_id.search(player_prestart)
-    return m.group('game_id')
+    return m.group(1)
