@@ -17,7 +17,8 @@ files = [
     "src/teams.py",
     "src/vga1_16x32.py",
     "Timeblaster/MicroPython/blaster.py"
-    "micropython-mqtt/mqtt-as/mqtt_as.py"
 ]
 
-freeze("fri3d-lasertag", files)
+freeze(".", files)
+freeze("micropython-mqtt/mqtt_as", "mqtt_as.py")
+
