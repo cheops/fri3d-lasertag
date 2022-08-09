@@ -4,6 +4,8 @@ import ubinascii
 from machine import unique_id
 
 SERVER = '192.168.0.156'  # Change to suit e.g. 'iot.eclipse.org'
+FRI3D_WIFI_SSID = 'fri3d-badge'
+FRI3D_WIFI_PASSWORD = 'fri3dcamp'
 
 
 # example string flag data: "blueC_100H_AliveS_125T_"
@@ -55,8 +57,8 @@ config['server'] = SERVER
 config['port'] = 1884
 
 # Not needed if you're only using ESP8266
-config['ssid'] = 'telenet-FD87E'
-config['wifi_pw'] = '556F2kAsxxjT'
+config['ssid'] = FRI3D_WIFI_SSID
+config['wifi_pw'] = FRI3D_WIFI_PASSWORD
 
 
 

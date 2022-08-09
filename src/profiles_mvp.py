@@ -11,6 +11,7 @@ from teams import REX, GIGGLE, BUZZ, team_blaster
 from booting_screen import monitor as monitor_booting
 from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
 from monitor_countdown import monitor_countdown
+from monitor_mqtt import publish_mqtt_flag, subscribe_flag_prestart, get_game_id, get_playing_channel
 
 
 class FlagAndPlayer(Profile):
@@ -23,6 +24,8 @@ class FlagAndPlayer(Profile):
         self._remaining_seconds = 0
         self._current_state_tasks = []
         self._new_event = None
+        self._game_id = 0
+        self._playing_channel = playing_channel
 
     def set_new_event(self, new_event):
         self._new_event = new_event
@@ -116,6 +119,14 @@ class Flag(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
+        def parse_prestart_msg(msg):
+            self._game_id = get_game_id(msg)
+            self._playing_channel = get_playing_channel(msg)
+            self.set_new_event(PRESTART)
+
+        t_mqtt = uasyncio.create_task(subscribe_flag_prestart(parse_prestart_msg))
+        self._current_state_tasks.append(t_mqtt)
+
     def _hiding(self):
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team], )), hit_timeout)
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
@@ -135,13 +146,13 @@ class Flag(FlagAndPlayer):
     def _playing(self):
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (playing_channel,)), hit_timeout)
+        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (self._playing_channel,)), hit_timeout)
         clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Playing")
-        t_badge = uasyncio.create_task(self._monitor_badge(playing_channel))
+        t_badge = uasyncio.create_task(self._monitor_badge(self._playing_channel))
         self._current_state_tasks.append(t_badge)
 
         def handle_countdown_end():
@@ -153,6 +164,16 @@ class Flag(FlagAndPlayer):
 
         t_countdown = uasyncio.create_task(monitor_countdown(playing_time, handle_countdown_end, handle_countdown_update))
         self._current_state_tasks.append(t_countdown)
+
+        def get_health():
+            return self.health
+
+        def get_remaining_seconds():
+            return self._remaining_seconds
+
+        t_mqtt = uasyncio.create_task(publish_mqtt_flag(self._team, self._game_id, get_health, get_remaining_seconds))
+        self._current_state_tasks.append(t_mqtt)
+
 
     def _finishing(self):
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)

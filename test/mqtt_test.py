@@ -9,6 +9,8 @@ from machine import unique_id
 
 import umqtt.simple
 
+FRI3D_WIFI_SSID = 'fri3d-badge'
+FRI3D_WIFI_PASSWORD = 'fri3dcamp'
 # example string flag data: "blueC_100H_AliveS_125T_"
 # example string player data: "greenC_00AA11BB22CCI_100H_aliveS_14HI_58SH_125T_"
 data_type = "flag"
@@ -27,17 +29,12 @@ flag_data = f"{game_id}G_{team}C_{health}H_{status}S_{remaining_seconds}T_"
 player_data = f"{team}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{game_id}G_"
 
 
-
-
 def _connect_wifi():
-    ssid = 'telenet-FD87E'
-    password = '556F2kAsxxjT'
-
     station = network.WLAN(network.STA_IF)
     if not station.isconnected():
 
         station.active(True)
-        station.connect(ssid, password)
+        station.connect(FRI3D_WIFI_SSID, FRI3D_WIFI_PASSWORD)
 
     while not station.isconnected():
         pass
