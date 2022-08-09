@@ -361,7 +361,7 @@ def startGame():
     playing_channel = random.randint(3,14)
     print("playing channel: " + str(playing_channel))
     pub_flag_data = "flag_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage) + "HD_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
-    pub_player_data = "player_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage) + "HD_" + str(hit_timeout) + "HT_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
+    pub_player_data = "player_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage) + "HD_" + str(hit_timeout) + "HTO_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
     
     global client
     status = 0
