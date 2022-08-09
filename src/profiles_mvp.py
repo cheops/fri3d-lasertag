@@ -100,9 +100,9 @@ class Flag(FlagAndPlayer):
         await monitor_badge(self._team, channel, _got_hit)
 
     def _practicing(self):
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (practicing_channel, )), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (practicing_channel, )), hit_timeout)
         clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
@@ -128,9 +128,9 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_mqtt)
 
     def _hiding(self):
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team], )), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel, )), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team], )), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel, )), hit_timeout)
         clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
@@ -144,9 +144,9 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_countdown)
 
     def _playing(self):
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (self._playing_channel,)), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (self._playing_channel,)), hit_timeout)
         clear_badge_buffer()
         self.health = 100
         self._my_display.draw_initial()
@@ -176,9 +176,9 @@ class Flag(FlagAndPlayer):
 
 
     def _finishing(self):
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
-        uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel, )), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), hit_timeout)
+        #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel, )), hit_timeout)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
         self._my_display.draw_static_middle("Finishing")
