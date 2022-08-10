@@ -288,7 +288,8 @@ class Player(FlagAndPlayer):
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
-        self._my_display.draw_upper_right(100)
+        self.ammo = 100
+        self._my_display.draw_upper_right(self.ammo)
         self._my_display.draw_static_middle("Hiding")
 
         def handle_countdown_end():
@@ -307,7 +308,8 @@ class Player(FlagAndPlayer):
         self.health = 100
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
-        self._my_display.draw_upper_right(100)
+        self.ammo = 100
+        self._my_display.draw_upper_right(self.ammo)
         self._my_display.draw_static_middle("Playing")
         t_blaster = uasyncio.create_task(self._monitor_blaster())
         self._current_state_tasks.append(t_blaster)
@@ -343,7 +345,7 @@ class Player(FlagAndPlayer):
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_channel, (invalid_channel,)), self._hit_timeout)
         self._my_display.draw_initial()
         self._my_display.draw_upper_left(self.health)
-        self._my_display.draw_upper_right(100)
+        self._my_display.draw_upper_right(self.ammo)
         self._my_display.draw_static_middle("Finishing")
         self._my_display.draw_middle(self._remaining_seconds)
 
