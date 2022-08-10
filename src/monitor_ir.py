@@ -9,7 +9,7 @@ def clear_blaster_buffer():
         pass
 
 
-async def monitor_blaster(my_team, got_hit_fnc):
+async def monitor_blaster(my_team, got_hit_fnc, shot_fnc):
     while True:
         await uasyncio.sleep(0.1)
         data_packet = blaster.blaster.get_blaster_shot()
@@ -22,6 +22,13 @@ async def monitor_blaster(my_team, got_hit_fnc):
             dead = got_hit_fnc()
             if dead:
                 break
+
+        if data_packet is not None \
+                and data_packet.command == Command.shoot \
+                and data_packet.trigger is True \
+                and data_packet.team == team_blaster[my_team]:
+            # we shoot
+            shot_fnc()
 
 
 def clear_badge_buffer():

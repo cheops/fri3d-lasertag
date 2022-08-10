@@ -1,8 +1,12 @@
+import gc
+
 from mqtt_as import MQTTClient, config
-import uasyncio as asyncio
+import uasyncio
 import ubinascii
 from machine import unique_id
 import re
+
+MQTTClient.DEBUG = True  # Optional: print diagnostic messages
 
 SERVER = '192.168.0.156'  # Change to suit e.g. 'iot.eclipse.org'
 PORT = 1883
@@ -27,22 +31,22 @@ async def _conn_han(the_client):
 
 async def publish_mqtt_flag(team, game_id, fnc_get_health, fnc_get_remaining_seconds):
     try:
-        await client.connect()
+        my_client = await get_client()
         while True:
             health = fnc_get_health()
             status = "alive" if health > 0 else "dead"
             remaining_seconds = fnc_get_remaining_seconds()
             flag_data = f"{team}C_{health}H_{status}S_{remaining_seconds}T_{game_id}G_"
 
-            await client.publish('flag', flag_data)
-            await asyncio.sleep(5)
+            await my_client.publish('flag', flag_data)
+            await uasyncio.sleep(5)
     finally:
-        client.close()
+        close_client()
 
 
 async def publish_mqtt_player(team, game_id, fnc_get_health, fnc_get_hits, fnc_get_shots, fnc_get_remaining_seconds):
     try:
-        await client.connect()
+        my_client = await get_client()
         while True:
             health = fnc_get_health()
             status = "alive" if health > 0 else "dead"
@@ -51,52 +55,74 @@ async def publish_mqtt_player(team, game_id, fnc_get_health, fnc_get_hits, fnc_g
             shots = fnc_get_shots()
             player_data = f"{team}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{game_id}G_"
 
-            await client.publish('player', player_data)
-            await asyncio.sleep(5)
+            await my_client.publish('player', player_data)
+            await uasyncio.sleep(5)
     finally:
-        client.close()
+        close_client()
 
 
-def subscribe_flag_prestart(fnc_callback_prestart):
+async def subscribe_flag_prestart(fnc_callback_prestart):
+    await get_client()
     subscription_callbacks['flag_prestart'] = fnc_callback_prestart
-
-
-def unsubscribe_flag_prestart():
-    del subscription_callbacks['flag_prestart']
+    try:
+        while True:
+            await uasyncio.sleep(1)
+    finally:
+        del subscription_callbacks['flag_prestart']
+        close_client()
 
 
 def subscribe_player_prestart(fnc_callback_prestart):
+    await get_client()
     subscription_callbacks['player_prestart'] = fnc_callback_prestart
-
-
-def unsubscribe_player_prestart():
-    del subscription_callbacks['player_prestart']
+    try:
+        while True:
+            await uasyncio.sleep(1)
+    finally:
+        del subscription_callbacks['player_prestart']
+        close_client()
 
 
 def subscribe_device_stop(fnc_callback_stop):
+    await get_client()
     subscription_callbacks['device_stop'] = fnc_callback_stop
-
-
-def unsubscribe_device_stop():
-    del subscription_callbacks['device_stop']
+    try:
+        while True:
+            await uasyncio.sleep(1)
+    finally:
+        del subscription_callbacks['device_stop']
+        close_client()
 
 
 config['subs_cb'] = _callback
 config['connect_coro'] = _conn_han
 config['server'] = SERVER
 config['port'] = PORT
-
-# Not needed if you're only using ESP8266
 config['ssid'] = FRI3D_WIFI_SSID
 config['wifi_pw'] = FRI3D_WIFI_PASSWORD
 
+client = None
+client_ref_count = 0
 
-MQTTClient.DEBUG = True  # Optional: print diagnostic messages
-client = MQTTClient(config)
+
+async def get_client():
+    global client
+    global client_ref_count
+    if client is None:
+        client = MQTTClient(config)
+        await client.connect()
+    client_ref_count += 1
+    return client
 
 
 def close_client():
-    client.close()
+    global client
+    global client_ref_count
+    client_ref_count -= 1
+    if client_ref_count == 0 and client is not None:
+        client.close()
+        client = None
+        gc.collect()
 
 
 c_hiding_time = re.compile(r'([0-9]+)HT_')
@@ -109,27 +135,24 @@ c_playing_channel = re.compile(r'([0-9]+)PLC_')
 c_game_id = re.compile(r'([0-9]+)G_')
 
 
-def get_hiding_time(player_prestart):
-    m = c_hiding_time.search(player_prestart)
-    return m.group(1)
-def get_playing_time(player_prestart):
-    m = c_playing_time.search(player_prestart)
-    return m.group(1)
-def get_hit_damage(player_prestart):
-    m = c_hit_damage.search(player_prestart)
-    return m.group(1)
-def get_hit_timeout(player_prestart):
-    m = c_hit_timeout.search(player_prestart)
-    return m.group(1)
-def get_shot_ammo(player_prestart):
-    m = c_shot_ammo.search(player_prestart)
-    return m.group(1)
-def get_practicing_channel(player_prestart):
-    m = c_practicing_channel.search(player_prestart)
-    return m.group(1)
-def get_playing_channel(player_prestart):
-    m = c_playing_channel.search(player_prestart)
-    return m.group(1)
-def get_game_id(player_prestart):
-    m = c_game_id.search(player_prestart)
-    return m.group(1)
+def parse_player_prestart_mqtt_msg(player_prestart):
+    #player_60HT_300PT_30HD_5HT_0SA_2PRC_4PLC_0374G_
+    parsed = {'hiding_time': c_hiding_time.search(player_prestart).group(1),
+              'playing_time': c_playing_time.search(player_prestart).group(1),
+              'hit_damage': c_hit_damage.search(player_prestart).group(1),
+              'hit_timeout': c_hit_timeout.search(player_prestart).group(1),
+              'shot_ammo': c_shot_ammo.search(player_prestart).group(1),
+              'playing_channel': c_playing_channel.search(player_prestart).group(1),
+              'game_id': c_game_id.search(player_prestart).group(1)}
+    return parsed
+
+
+def parse_flag_prestart_mqtt_msg(player_prestart):
+    #flag_60HT_300PT_30HD_2PRC_4PLC_0374G_
+    parsed = {'hiding_time': c_hiding_time.search(player_prestart).group(1),
+              'playing_time': c_playing_time.search(player_prestart).group(1),
+              'hit_damage': c_hit_damage.search(player_prestart).group(1),
+              'hit_timeout': c_hit_timeout.search(player_prestart).group(1),
+              'playing_channel': c_playing_channel.search(player_prestart).group(1),
+              'game_id': c_game_id.search(player_prestart).group(1)}
+    return parsed
