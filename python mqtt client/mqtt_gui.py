@@ -7,13 +7,15 @@ import datetime
 import time
 import random
 #example string flag data: "blueC_100H_aliveS_456T_2354G"
-#example string player data: "greenC_00AA11BB22CCI_100H_aliveS_14HI_58SH__456T_2354G"
+#example string player data: "greenC_00AA11BB22CCI_100H_aliveS_14HI_58SH_456T_2354G"
 
 #game statistics
 hiding_time = 60*1
 playing_time = 60*5
-hit_damage = 30
-hit_timeout = 5
+hit_damage_flag = 30
+hit_damage_player = 30
+hit_timeout_flag = 5
+hit_timeout_player = 5
 shot_ammo = 0
 practicing_channel = 2
 #playing_channel = 3
@@ -305,13 +307,13 @@ def thread_gui(name):
 #on press of start ==> publish prestart data to players and flags
 def startGame():
     #sample data
-    #flag_60HT_300PT_30HD_2PRC_4PLC_0374G_
+    #flag_60HT_300PT_30HD_5HT_2PRC_4PLC_0374G_
     #player_60HT_300PT_30HD_5HT_0SA_2PRC_4PLC_0374G_
     global currentGameId
     playing_channel = random.randint(3,14)
     print("playing channel: " + str(playing_channel))
-    pub_flag_data = "flag_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage) + "HD_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
-    pub_player_data = "player_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage) + "HD_" + str(hit_timeout) + "HTO_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
+    pub_flag_data = "flag_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_flag) + "HD_" + str(hit_timeout_player) + "HTO_"  + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
+    pub_player_data = "player_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_player) + "HD_" + str(hit_timeout_player) + "HTO_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
     
     global client
     status = 0
