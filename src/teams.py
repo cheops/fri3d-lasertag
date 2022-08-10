@@ -18,3 +18,7 @@ team_colors = {REX: _color_rex,
 team_blaster = {REX: blaster.Team.rex,
                 GIGGLE: blaster.Team.giggle,
                 BUZZ: blaster.Team.buzz}
+
+team_mqtt = {REX: 'red',
+             GIGGLE: 'green',
+             BUZZ: 'blue'}

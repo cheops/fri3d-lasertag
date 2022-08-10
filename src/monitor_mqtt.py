@@ -6,10 +6,12 @@ import ubinascii
 from machine import unique_id
 import re
 
+from teams import team_mqtt
+
 MQTTClient.DEBUG = True  # Optional: print diagnostic messages
 
-SERVER = '192.168.0.156'  # Change to suit e.g. 'iot.eclipse.org'
-PORT = 1883
+MQTT_SERVER = '192.168.0.140'  # Change to suit e.g. 'iot.eclipse.org'
+MQTT_PORT = 1883
 FRI3D_WIFI_SSID = 'fri3d-badge'
 FRI3D_WIFI_PASSWORD = 'fri3dcamp'
 
@@ -36,7 +38,7 @@ async def publish_mqtt_flag(team, game_id, fnc_get_health, fnc_get_remaining_sec
             health = fnc_get_health()
             status = "alive" if health > 0 else "dead"
             remaining_seconds = fnc_get_remaining_seconds()
-            flag_data = f"{team}C_{health}H_{status}S_{remaining_seconds}T_{game_id}G_"
+            flag_data = f"{team_mqtt[team]}C_{health}H_{status}S_{remaining_seconds}T_{game_id}G_"
 
             await my_client.publish('flag', flag_data)
             await uasyncio.sleep(5)
@@ -53,7 +55,7 @@ async def publish_mqtt_player(team, game_id, fnc_get_health, fnc_get_hits, fnc_g
             remaining_seconds = fnc_get_remaining_seconds()
             hits = fnc_get_hits()
             shots = fnc_get_shots()
-            player_data = f"{team}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{game_id}G_"
+            player_data = f"{team_mqtt[team]}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{game_id}G_"
 
             await my_client.publish('player', player_data)
             await uasyncio.sleep(5)
@@ -96,8 +98,8 @@ def subscribe_device_stop(fnc_callback_stop):
 
 config['subs_cb'] = _callback
 config['connect_coro'] = _conn_han
-config['server'] = SERVER
-config['port'] = PORT
+config['server'] = MQTT_SERVER
+config['port'] = MQTT_PORT
 config['ssid'] = FRI3D_WIFI_SSID
 config['wifi_pw'] = FRI3D_WIFI_PASSWORD
 
@@ -136,7 +138,7 @@ c_game_id = re.compile(r'([0-9]+)G_')
 
 
 def parse_player_prestart_mqtt_msg(player_prestart):
-    #player_60HT_300PT_30HD_5HT_0SA_2PRC_4PLC_0374G_
+    #player_60HT_300PT_30HD_5HTO_0SA_2PRC_4PLC0374G
     parsed = {'hiding_time': c_hiding_time.search(player_prestart).group(1),
               'playing_time': c_playing_time.search(player_prestart).group(1),
               'hit_damage': c_hit_damage.search(player_prestart).group(1),
@@ -148,7 +150,7 @@ def parse_player_prestart_mqtt_msg(player_prestart):
 
 
 def parse_flag_prestart_mqtt_msg(player_prestart):
-    #flag_60HT_300PT_30HD_2PRC_4PLC_0374G_
+    #flag_60HT_300PT_30HD_5HTO_2PRC_4PLC0374G
     parsed = {'hiding_time': c_hiding_time.search(player_prestart).group(1),
               'playing_time': c_playing_time.search(player_prestart).group(1),
               'hit_damage': c_hit_damage.search(player_prestart).group(1),
