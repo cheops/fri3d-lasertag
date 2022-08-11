@@ -43,7 +43,7 @@ async def publish_mqtt_flag(team, game_id, fnc_get_health, fnc_get_remaining_sec
             await my_client.publish('flag', flag_data)
             await uasyncio.sleep(5)
     finally:
-        close_client()
+        await close_client()
 
 
 async def publish_mqtt_player(team, game_id, fnc_get_health, fnc_get_hits, fnc_get_shots, fnc_get_remaining_seconds):
@@ -60,7 +60,7 @@ async def publish_mqtt_player(team, game_id, fnc_get_health, fnc_get_hits, fnc_g
             await my_client.publish('player', player_data)
             await uasyncio.sleep(5)
     finally:
-        close_client()
+        await close_client()
 
 
 async def subscribe_flag_prestart(fnc_callback_prestart):
@@ -71,7 +71,7 @@ async def subscribe_flag_prestart(fnc_callback_prestart):
             await uasyncio.sleep(100)
     finally:
         del subscription_callbacks['flag_prestart']
-        close_client()
+        await close_client()
 
 
 async def subscribe_player_prestart(fnc_callback_prestart):
@@ -82,7 +82,7 @@ async def subscribe_player_prestart(fnc_callback_prestart):
             await uasyncio.sleep(100)
     finally:
         del subscription_callbacks['player_prestart']
-        close_client()
+        await close_client()
 
 
 async def subscribe_device_stop(fnc_callback_stop):
@@ -93,7 +93,7 @@ async def subscribe_device_stop(fnc_callback_stop):
             await uasyncio.sleep(100)
     finally:
         del subscription_callbacks['device_stop']
-        close_client()
+        await close_client()
 
 
 config['subs_cb'] = _callback
@@ -117,10 +117,11 @@ async def get_client():
     return client
 
 
-def close_client():
+async def close_client():
     global client
     global client_ref_count
     client_ref_count -= 1
+    await uasyncio.sleep(10)
     if client_ref_count == 0 and client is not None:
         client.close()
         client = None
