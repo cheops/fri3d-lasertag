@@ -112,7 +112,7 @@ def set_color(r, g, b):
 
 
 # turn off all pixels
-def clear():
+def pixels_clear():
     for i in range(NUM_LEDS):
         neopixels_5[i] = (0, 0, 0)
     neopixels_5.write()
@@ -134,7 +134,7 @@ def effect_star_wars():
 
 def effect_clean():
     tft.fill(st7789.BLACK)
-    clear()
+    pixels_clear()
     gc.collect()
 
 

@@ -7,7 +7,7 @@ from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING, PRESTART, BOOT
 from mvp import DEAD, COUNTDOWN_END
 from mvp import playing_time, hiding_time, hit_damage, hit_timeout, shot_ammo, practicing_channel, playing_channel, invalid_channel
 from display import Display, DisplayFlag, DisplayPlayer
-from effects import effect_R2D2, effect_clean
+from effects import effect_R2D2, pixels_clear
 from teams import REX, GIGGLE, BUZZ, team_blaster
 from booting_screen import monitor as monitor_booting
 from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
@@ -97,7 +97,7 @@ class Flag(FlagAndPlayer):
                 self.health = 0
             self._my_display.draw_upper_left(self.health)
             effect_R2D2()
-            effect_clean()
+            pixels_clear()
             uasyncio.wait_for(sleep(self._hit_timeout), self._hit_timeout + 1)
             clear_badge_buffer()
             if self.health <= 0:
