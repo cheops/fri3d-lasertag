@@ -121,8 +121,7 @@ def clear():
 def effect_R2D2():
     event = uasyncio.Event()
     _thread.start_new_thread(BuzzerR2D2, (buzzer_pin, event))
-    uasyncio.create_task(monitor_button(event))
-    uasyncio.gather(draw_fri3d_logo(10, event), draw_rainbow(2, event))
+    uasyncio.gather(draw_rainbow(2, event))
 
 
 def effect_star_wars():
