@@ -45,6 +45,7 @@ class Display:
         self._color = team_colors[self._team]
         self._prev_upper_left_len_pixels = 0
         self._prev_middle_len_pixels = 0
+        self._prev_upper_right_len_pixels = 0
 
     def draw_initial(self):
         self._draw_borders()
@@ -75,7 +76,7 @@ class Display:
 
     def draw_upper_left(self, health):
         health_str = str(health)
-        tft.write(font_32, str(health), self._width + 18, 37, self._color, self._bg_color)
+        tft.write(font_32, health_str, self._width + 18, 37, self._color, self._bg_color)
         upper_left_len_pixels = tft.write_len(font_32, health_str)
         diff = self._prev_upper_left_len_pixels - upper_left_len_pixels
         if diff > 0:
@@ -125,8 +126,13 @@ class DisplayPlayer(Display):
         tft.write(font_16, "Ammo%", 120 + 4 + 6, 14, self._color, self._bg_color)
 
     def draw_upper_right(self, ammo):
-        pixel_length = tft.write_len(font_16, str(ammo))
-        tft.write(font_32, str(ammo), 120 + int(self._width / 2) + 18, 37, self._color, self._bg_color)
+        ammo_str = str(ammo)
+        tft.write(font_32, ammo_str, 120 + int(self._width / 2) + 18, 37, self._color, self._bg_color)
+        upper_right_len_pixels = tft.write_len(font_32, ammo_str)
+        diff = self._prev_upper_right_len_pixels - upper_right_len_pixels
+        if diff > 0:
+            tft.fill_rect(120 + int(self._width / 2) + 18 + upper_right_len_pixels, 37, diff, font_32.HEIGHT, self._bg_color)
+        self._prev_upper_right_len_pixels = upper_right_len_pixels
 
     def _draw_static_bottom(self):
         Display._draw_static_bottom(self)
