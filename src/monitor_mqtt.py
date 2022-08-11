@@ -21,9 +21,9 @@ subscription_topics = ['flag_prestart', 'player_prestart', 'device_stop']
 
 
 def _callback(topic, msg, retained):
-    print((topic, msg, retained))
-    if topic in subscription_callbacks:
-        subscription_callbacks[topic](msg)
+    print((topic.decode(), msg.decode(), retained))
+    if topic.decode() in subscription_callbacks:
+        subscription_callbacks[topic.decode()](msg.decode())
 
 
 async def _conn_han(the_client):
@@ -68,29 +68,29 @@ async def subscribe_flag_prestart(fnc_callback_prestart):
     subscription_callbacks['flag_prestart'] = fnc_callback_prestart
     try:
         while True:
-            await uasyncio.sleep(1)
+            await uasyncio.sleep(100)
     finally:
         del subscription_callbacks['flag_prestart']
         close_client()
 
 
-def subscribe_player_prestart(fnc_callback_prestart):
+async def subscribe_player_prestart(fnc_callback_prestart):
     await get_client()
     subscription_callbacks['player_prestart'] = fnc_callback_prestart
     try:
         while True:
-            await uasyncio.sleep(1)
+            await uasyncio.sleep(100)
     finally:
         del subscription_callbacks['player_prestart']
         close_client()
 
 
-def subscribe_device_stop(fnc_callback_stop):
+async def subscribe_device_stop(fnc_callback_stop):
     await get_client()
     subscription_callbacks['device_stop'] = fnc_callback_stop
     try:
         while True:
-            await uasyncio.sleep(1)
+            await uasyncio.sleep(100)
     finally:
         del subscription_callbacks['device_stop']
         close_client()
@@ -139,22 +139,22 @@ c_game_id = re.compile(r'([0-9]+)G_')
 
 def parse_player_prestart_mqtt_msg(player_prestart):
     #player_60HT_300PT_30HD_5HTO_0SA_2PRC_4PLC0374G
-    parsed = {'hiding_time': c_hiding_time.search(player_prestart).group(1),
-              'playing_time': c_playing_time.search(player_prestart).group(1),
-              'hit_damage': c_hit_damage.search(player_prestart).group(1),
-              'hit_timeout': c_hit_timeout.search(player_prestart).group(1),
-              'shot_ammo': c_shot_ammo.search(player_prestart).group(1),
-              'playing_channel': c_playing_channel.search(player_prestart).group(1),
+    parsed = {'hiding_time': int(c_hiding_time.search(player_prestart).group(1)),
+              'playing_time': int(c_playing_time.search(player_prestart).group(1)),
+              'hit_damage': int(c_hit_damage.search(player_prestart).group(1)),
+              'hit_timeout': int(c_hit_timeout.search(player_prestart).group(1)),
+              'shot_ammo': int(c_shot_ammo.search(player_prestart).group(1)),
+              'playing_channel': int(c_playing_channel.search(player_prestart).group(1)),
               'game_id': c_game_id.search(player_prestart).group(1)}
     return parsed
 
 
 def parse_flag_prestart_mqtt_msg(player_prestart):
     #flag_60HT_300PT_30HD_5HTO_2PRC_4PLC0374G
-    parsed = {'hiding_time': c_hiding_time.search(player_prestart).group(1),
-              'playing_time': c_playing_time.search(player_prestart).group(1),
-              'hit_damage': c_hit_damage.search(player_prestart).group(1),
-              'hit_timeout': c_hit_timeout.search(player_prestart).group(1),
-              'playing_channel': c_playing_channel.search(player_prestart).group(1),
+    parsed = {'hiding_time': int(c_hiding_time.search(player_prestart).group(1)),
+              'playing_time': int(c_playing_time.search(player_prestart).group(1)),
+              'hit_damage': int(c_hit_damage.search(player_prestart).group(1)),
+              'hit_timeout': int(c_hit_timeout.search(player_prestart).group(1)),
+              'playing_channel': int(c_playing_channel.search(player_prestart).group(1)),
               'game_id': c_game_id.search(player_prestart).group(1)}
     return parsed
