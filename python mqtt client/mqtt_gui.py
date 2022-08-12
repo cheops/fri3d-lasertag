@@ -10,7 +10,7 @@ import random
 #example string player data: "greenC_00AA11BB22CCI_100H_aliveS_14HI_58SH_456T_2354G"
 
 #game statistics
-hiding_time = 60*1
+hiding_time = 10#60*1
 playing_time = 60*5
 hit_damage_flag = 30
 hit_damage_player = 30
@@ -20,6 +20,8 @@ shot_ammo = 0
 practicing_channel = 2
 #playing_channel = 3
 invalid_channel = 15
+mqtt_during_playing_flag = False
+mqtt_during_playing_player = False
 
 #gameId is generated automatically, to make static, disable in main()
 currentGameId = 0
@@ -27,7 +29,8 @@ currentGameId = 0
 #broker details
 #broker = "192.168.1.206"
 #port = 1884
-broker = "192.168.0.140"
+#broker = "192.168.0.140"
+broker = "10.43.54.237"
 port = 1883
 
 
@@ -87,6 +90,8 @@ topic_stop = "device_stop"
 
 #global subscription data ==> used for exchanging data between subscriber loop and main
 sub_data = ["sample"]
+
+prestart_thread_running = False
 
 #gui thread
 def thread_gui(name):
@@ -307,19 +312,41 @@ def thread_gui(name):
 #on press of start ==> publish prestart data to players and flags
 def startGame():
     #sample data
-    #flag_60HT_300PT_30HD_5HT_2PRC_4PLC_0374G_
-    #player_60HT_300PT_30HD_5HT_0SA_2PRC_4PLC_0374G_
-    global currentGameId
-    playing_channel = random.randint(3,14)
-    print("playing channel: " + str(playing_channel))
-    pub_flag_data = "flag_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_flag) + "HD_" + str(hit_timeout_player) + "HTO_"  + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
-    pub_player_data = "player_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_player) + "HD_" + str(hit_timeout_player) + "HTO_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
+    #flag_60HT_300PT_30HD_5HTO_2PRC_4PLC_0374G_False_MQT
+    #player_60HT_300PT_30HD_5HTO_0SA_2PRC_4PLC_0374G_False_MQT
+
+    global program_running
+    prestart_thread = threading.Thread(target=sendPrestart_thread, args=(1,))
+    prestart_thread.start()
+
     
-    global client
-    status = 0
-    publish(client, topic_player_pub_prestart, status, pub_player_data)
-    time.sleep(0.1)
-    publish(client, topic_flag_pub_prestart, status, pub_flag_data)
+
+def sendPrestart_thread(name):
+    global prestart_thread_running
+    global hiding_time
+    global currentGameId
+    print("here i am")
+    if prestart_thread_running == False:
+        playing_channel = random.randint(3, 14)
+        print("playing channel: " + str(playing_channel))
+        
+        prestart_thread_running = True
+        remaining_hiding_time = hiding_time
+        while remaining_hiding_time > 0:
+            remaining_hiding_time -= 1
+
+            pub_flag_data = "flag_prestart_" + str(remaining_hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_flag) + "HD_" + str(hit_timeout_player) + "HTO_"  + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_" + str(mqtt_during_playing_flag) + "MQT_"
+            pub_player_data = "player_prestart_" + str(remaining_hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_player) + "HD_" + str(hit_timeout_player) + "HTO_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_" + str(mqtt_during_playing_player) + "MQT_"
+        
+            global client
+            status = 0
+            publish(client, topic_player_pub_prestart, status, pub_player_data)
+            time.sleep(0.1)
+            publish(client, topic_flag_pub_prestart, status, pub_flag_data)
+            time.sleep(0.9)
+        prestart_thread_running = False
+    else:
+        print("already sending prestart")
 
 #on press of stop ==> publish stop data to all devices
 def stopGame():
