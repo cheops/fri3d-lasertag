@@ -45,6 +45,13 @@ def BuzzerStarWars(pin, event):
     play(pin, SW_NOTES, SW_DURATION, SW_SLEEP, event)
 
 
+def BuzzerReload(pin, event):
+    SW_NOTES = list(range(400, 1400, 20))
+    SW_DURATION = list(range(300, 100, -4))
+    SW_SLEEP = [20] * 50
+    play(pin, SW_NOTES, SW_DURATION, SW_SLEEP, event)
+
+
 def BuzzerR2D2(pin, event):
     R2D2_NOTES = [3520, 3135.96, 2637.02, 2093, 2349.32, 3951.07, 2793.83, 4186.01, 3520, 3135.96, 2637.02, 2093, 2349.32, 3951.07, 2793.83, 4186.01]
     R2D2_DURATION = [80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80]
@@ -64,7 +71,7 @@ async def draw_fri3d_logo(duration, event):
         tft.fill_rect(0, row * font_32.HEIGHT, 240, font_32.HEIGHT, st7789.BLACK)
         tft.bitmap(fri3d_logo, 0, 0)
         await uasyncio.sleep(t / 100)
-    if  not event.is_set():
+    if not event.is_set():
         tft.text(font_32, 'fri3d-lasertag', 0, row * font_32.HEIGHT)
 
 
@@ -105,6 +112,16 @@ async def draw_rainbow(duration, event):
             break
 
 
+async def pixels_reload():
+    for led_nr in range(0, NUM_LEDS):
+        for i in range(0, 10):
+            neopixels_5[led_nr] = (i*10, i*10, i*10)
+            neopixels_5.write()
+            await uasyncio.sleep_ms(200)
+    await uasyncio.sleep_ms(200)
+    pixels_clear()
+
+
 def set_color(r, g, b):
     for i in range(NUM_LEDS):
         neopixels_5[i] = (r, g, b)
@@ -121,7 +138,7 @@ def pixels_clear():
 def effect_R2D2():
     event = uasyncio.Event()
     _thread.start_new_thread(BuzzerR2D2, (buzzer_pin, event))
-    uasyncio.gather(draw_rainbow(2, event))
+    uasyncio.get_event_loop().run_until_complete(draw_rainbow(2, event))
 
 
 def effect_star_wars():
@@ -130,6 +147,12 @@ def effect_star_wars():
     uasyncio.create_task(monitor_button(event))
     uasyncio.create_task(draw_fri3d_logo(30, event))
     uasyncio.run(draw_rainbow(8, event))
+
+
+def effect_reload():
+    event = uasyncio.Event()
+    _thread.start_new_thread(BuzzerReload, (buzzer_pin, event))
+    uasyncio.get_event_loop().run_until_complete(pixels_reload())
 
 
 def effect_clean():

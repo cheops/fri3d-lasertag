@@ -7,7 +7,7 @@ from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING
 from mvp import DEAD, COUNTDOWN_END, DEVICE_STOP, PRESTART, BOOT
 from mvp import playing_time, hiding_time, hit_damage, hit_timeout, shot_ammo, practicing_channel, playing_channel, invalid_channel
 from display import Display, DisplayFlag, DisplayPlayer
-from effects import effect_R2D2, pixels_clear
+from effects import effect_R2D2, pixels_clear, effect_reload
 from teams import REX, GIGGLE, BUZZ, team_blaster
 from booting_screen import monitor as monitor_booting
 from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
@@ -251,6 +251,8 @@ class Player(FlagAndPlayer):
                 self.ammo = 0
             self._my_display.draw_upper_right(self.ammo)
             if self.ammo <= 0:
+                uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
+                uasyncio.wait_for(effect_reload())
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
 
         await monitor_blaster(self._team, _got_hit, _shot)
