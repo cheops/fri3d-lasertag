@@ -3,8 +3,8 @@ from time import sleep
 
 from hardware import blaster, boot_button
 from profiles_common import Profile
-from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING, PRESTART, BOOT
-from mvp import DEAD, COUNTDOWN_END
+from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING
+from mvp import DEAD, COUNTDOWN_END, DEVICE_STOP, PRESTART, BOOT
 from mvp import playing_time, hiding_time, hit_damage, hit_timeout, shot_ammo, practicing_channel, playing_channel, invalid_channel
 from display import Display, DisplayFlag, DisplayPlayer
 from effects import effect_R2D2, pixels_clear
@@ -13,7 +13,8 @@ from booting_screen import monitor as monitor_booting
 from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
 from monitor_countdown import monitor_countdown
 from monitor_mqtt import publish_mqtt_flag, publish_mqtt_player, \
-    subscribe_flag_prestart, subscribe_player_prestart,  parse_player_prestart_mqtt_msg, parse_flag_prestart_mqtt_msg
+    subscribe_flag_prestart, subscribe_player_prestart, parse_player_prestart_mqtt_msg, parse_flag_prestart_mqtt_msg, \
+    subscribe_device_stop
 
 
 class FlagAndPlayer(Profile):
@@ -208,6 +209,12 @@ class Flag(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
+        def parse_device_stop(mqtt_msg):
+            if mqtt_msg == "stop":
+                self.set_new_event(DEVICE_STOP)
+
+        t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
+        self._current_state_tasks.append(t_mqtt)
 
 class Player(FlagAndPlayer):
 
@@ -362,6 +369,13 @@ class Player(FlagAndPlayer):
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
+
+        def parse_device_stop(mqtt_msg):
+            if mqtt_msg == "stop":
+                self.set_new_event(DEVICE_STOP)
+
+        t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
+        self._current_state_tasks.append(t_mqtt)
 
 
 def to_blaster_with_retry(fnc, args=(), kwargs=None):
