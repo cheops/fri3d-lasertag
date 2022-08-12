@@ -11,7 +11,7 @@ def clear_blaster_buffer():
 
 async def monitor_blaster(my_team, got_hit_fnc, shot_fnc):
     while True:
-        await uasyncio.sleep(0.1)
+        await uasyncio.sleep(0.5)
         data_packet = blaster.blaster.get_blaster_shot()
 
         if data_packet is not None \
@@ -38,7 +38,7 @@ def clear_badge_buffer():
 
 async def monitor_badge(my_team, channel, got_hit_fnc):
     while True:
-        await uasyncio.sleep(0.1)
+        await uasyncio.sleep(0.5)
         data_packet = get_badge_shot(channel)
 
         if data_packet is not None \

@@ -20,6 +20,8 @@ shot_ammo = 0
 practicing_channel = 2
 #playing_channel = 3
 invalid_channel = 15
+mqtt_during_playing_flag = False
+mqtt_during_playing_player = False
 
 #gameId is generated automatically, to make static, disable in main()
 currentGameId = 0
@@ -39,6 +41,7 @@ class Flag:
     status: str
     timeOfDeath: str
     gameId: str
+    mqqtDuringPlaying: str
 @dataclass
 class Player:
     color: str
@@ -49,11 +52,12 @@ class Player:
     shots: str
     timeOfDeath: str
     gameId: str
+    mqqtDuringPlaying: str
 
 #global storage for flag telemetry data (used between main() and gui thread
-green_flag_data = Flag("green", "0%", "death", "0", "0")
-red_flag_data = Flag("red", "0%", "death", "0", "0")
-blue_flag_data = Flag("blue", "0%", "death", "0", "0")
+green_flag_data = Flag("green", "0%", "death", "0", "0", False)
+red_flag_data = Flag("red", "0%", "death", "0", "0", False)
+blue_flag_data = Flag("blue", "0%", "death", "0", "0", False)
 
 #global storage for player telemetry data (used between main() and gui thread
 player_list_data_green = []
@@ -307,8 +311,8 @@ def thread_gui(name):
 #on press of start ==> publish prestart data to players and flags
 def startGame():
     #sample data
-    #flag_60HT_300PT_30HD_5HT_2PRC_4PLC_0374G_
-    #player_60HT_300PT_30HD_5HT_0SA_2PRC_4PLC_0374G_
+    #flag_60HT_300PT_30HD_5HTO_2PRC_4PLC_0374G_False_MQT
+    #player_60HT_300PT_30HD_5HTO_0SA_2PRC_4PLC_0374G_False_MQT
     global currentGameId
     playing_channel = random.randint(3,14)
     print("playing channel: " + str(playing_channel))
