@@ -7,7 +7,7 @@ async def monitor_countdown(countdown_seconds, handle_countdown_end, update_coun
     start = time.ticks_ms()  # get millisecond counter
     previous_remaining_seconds = None
     while True:
-        await uasyncio.sleep(0.1)
+        await uasyncio.sleep(0.5)
         delta = time.ticks_diff(time.ticks_ms(), start)  # compute time difference
 
         remaining_seconds = int((countdown_seconds * 1000 - delta) / 1000)

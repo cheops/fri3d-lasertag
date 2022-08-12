@@ -136,6 +136,7 @@ c_shot_ammo = re.compile(r'([0-9]+)SA_')
 c_practicing_channel = re.compile(r'([0-9]+)PRC_')
 c_playing_channel = re.compile(r'([0-9]+)PLC_')
 c_game_id = re.compile(r'([0-9]+)G_')
+c_mqtt_during_playing = re.compile(r'([0-9]+)MQT_')
 
 
 def parse_player_prestart_mqtt_msg(player_prestart):
@@ -146,7 +147,8 @@ def parse_player_prestart_mqtt_msg(player_prestart):
               'hit_timeout': int(c_hit_timeout.search(player_prestart).group(1)),
               'shot_ammo': int(c_shot_ammo.search(player_prestart).group(1)),
               'playing_channel': int(c_playing_channel.search(player_prestart).group(1)),
-              'game_id': c_game_id.search(player_prestart).group(1)}
+              'game_id': c_game_id.search(player_prestart).group(1),
+              'mqtt_during_playing': bool(c_mqtt_during_playing.search(player_prestart).group(1))}
     return parsed
 
 
@@ -157,5 +159,6 @@ def parse_flag_prestart_mqtt_msg(player_prestart):
               'hit_damage': int(c_hit_damage.search(player_prestart).group(1)),
               'hit_timeout': int(c_hit_timeout.search(player_prestart).group(1)),
               'playing_channel': int(c_playing_channel.search(player_prestart).group(1)),
-              'game_id': c_game_id.search(player_prestart).group(1)}
+              'game_id': c_game_id.search(player_prestart).group(1),
+              'mqtt_during_playing': bool(c_mqtt_during_playing.search(player_prestart).group(1))}
     return parsed

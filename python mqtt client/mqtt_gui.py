@@ -20,6 +20,8 @@ shot_ammo = 0
 practicing_channel = 2
 #playing_channel = 3
 invalid_channel = 15
+mqtt_during_playing_flag = False
+mqtt_during_playing_player = False
 
 #gameId is generated automatically, to make static, disable in main()
 currentGameId = 0
@@ -39,6 +41,7 @@ class Flag:
     status: str
     timeOfDeath: str
     gameId: str
+    mqqtDuringPlaying: str
 @dataclass
 class Player:
     color: str
@@ -49,11 +52,12 @@ class Player:
     shots: str
     timeOfDeath: str
     gameId: str
+    mqqtDuringPlaying: str
 
 #global storage for flag telemetry data (used between main() and gui thread
-green_flag_data = Flag("green", "0%", "death", "0", "0")
-red_flag_data = Flag("red", "0%", "death", "0", "0")
-blue_flag_data = Flag("blue", "0%", "death", "0", "0")
+green_flag_data = Flag("green", "0%", "death", "0", "0", False)
+red_flag_data = Flag("red", "0%", "death", "0", "0", False)
+blue_flag_data = Flag("blue", "0%", "death", "0", "0", False)
 
 #global storage for player telemetry data (used between main() and gui thread
 player_list_data_green = []
@@ -307,19 +311,25 @@ def thread_gui(name):
 #on press of start ==> publish prestart data to players and flags
 def startGame():
     #sample data
-    #flag_60HT_300PT_30HD_5HT_2PRC_4PLC_0374G_
-    #player_60HT_300PT_30HD_5HT_0SA_2PRC_4PLC_0374G_
+    #flag_60HT_300PT_30HD_5HTO_2PRC_4PLC_0374G_False_MQT
+    #player_60HT_300PT_30HD_5HTO_0SA_2PRC_4PLC_0374G_False_MQT
     global currentGameId
-    playing_channel = random.randint(3,14)
+    playing_channel = random.randint(3, 14)
     print("playing channel: " + str(playing_channel))
-    pub_flag_data = "flag_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_flag) + "HD_" + str(hit_timeout_player) + "HTO_"  + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
-    pub_player_data = "player_prestart_" + str(hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_player) + "HD_" + str(hit_timeout_player) + "HTO_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_"
+
+    remaining_hiding_time = hiding_time
+    while remaining_hiding_time > 0:
+        remaining_hiding_time -= 1
+
+        pub_flag_data = "flag_prestart_" + str(remaining_hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_flag) + "HD_" + str(hit_timeout_player) + "HTO_"  + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_" + str(mqtt_during_playing_flag) + "MQT_"
+        pub_player_data = "player_prestart_" + str(remaining_hiding_time) + "HT_" + str(playing_time) + "PT_" + str(hit_damage_player) + "HD_" + str(hit_timeout_player) + "HTO_" + str(shot_ammo) + "SA_" + str(practicing_channel) + "PRC_" + str(playing_channel) + "PLC_" + str(currentGameId) + "G_" + str(mqtt_during_playing_player) + "MQT_"
     
-    global client
-    status = 0
-    publish(client, topic_player_pub_prestart, status, pub_player_data)
-    time.sleep(0.1)
-    publish(client, topic_flag_pub_prestart, status, pub_flag_data)
+        global client
+        status = 0
+        publish(client, topic_player_pub_prestart, status, pub_player_data)
+        time.sleep(0.1)
+        publish(client, topic_flag_pub_prestart, status, pub_flag_data)
+        time.sleep(0.9)
 
 #on press of stop ==> publish stop data to all devices
 def stopGame():

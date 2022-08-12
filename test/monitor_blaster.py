@@ -8,7 +8,7 @@ blaster.blaster.set_team(my_team)
 
 async def monitor_blaster():
     while True:
-        await uasyncio.sleep(0.1)
+        await uasyncio.sleep(0.5)
         data_packet = blaster.blaster.get_blaster_shot()
         #print(data_packet)
 

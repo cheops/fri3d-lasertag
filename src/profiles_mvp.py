@@ -34,6 +34,8 @@ class FlagAndPlayer(Profile):
         self._playing_channel = playing_channel
         self._game_id = 0
 
+        self._mqtt_during_playing = False
+
     def set_new_event(self, new_event):
         self._new_event = new_event
 
@@ -54,7 +56,7 @@ class FlagAndPlayer(Profile):
 
     async def _forever(self):
         while self._new_event is None:
-            await uasyncio.sleep(0.1)
+            await uasyncio.sleep(0.5)
         self.stop_current_tasks()
         new_event = self._new_event
         self.set_new_event(None)
@@ -135,7 +137,8 @@ class Flag(FlagAndPlayer):
             self._hit_damage = p.get('hit_damage', hit_damage)
             self._hit_timeout = p.get('hit_timeout', hit_timeout)
             self._playing_channel = p.get('playing_channel', playing_channel)
-            self._game_id = p.get('game_id')
+            self._game_id = p.get('game_id', self._game_id)
+            self._mqtt_during_playing = p.get('mqtt_during_playing', False)
             self.set_new_event(PRESTART)
 
         t_mqtt = uasyncio.create_task(subscribe_flag_prestart(parse_prestart_msg))
@@ -179,14 +182,15 @@ class Flag(FlagAndPlayer):
         t_countdown = uasyncio.create_task(monitor_countdown(self._playing_time, handle_countdown_end, handle_countdown_update))
         self._current_state_tasks.append(t_countdown)
 
-        def get_health():
-            return self.health
+        if self._mqtt_during_playing:
+            def get_health():
+                return self.health
 
-        def get_remaining_seconds():
-            return self._remaining_seconds
+            def get_remaining_seconds():
+                return self._remaining_seconds
 
-        t_mqtt = uasyncio.create_task(publish_mqtt_flag(self._team, self._game_id, get_health, get_remaining_seconds))
-        self._current_state_tasks.append(t_mqtt)
+            t_mqtt = uasyncio.create_task(publish_mqtt_flag(self._team, self._game_id, get_health, get_remaining_seconds))
+            self._current_state_tasks.append(t_mqtt)
 
 
     def _finishing(self):
@@ -276,7 +280,8 @@ class Player(FlagAndPlayer):
             self._hit_timeout = p.get('hit_timeout', hit_timeout)
             self._shot_ammo = p.get('shot_ammo', shot_ammo)
             self._playing_channel = p.get('playing_channel', playing_channel)
-            self._game_id = p.get('game_id')
+            self._game_id = p.get('game_id', self._game_id)
+            self._mqtt_during_playing = p.get('mqtt_during_playing', False)
             self.set_new_event(PRESTART)
 
         t_mqtt = uasyncio.create_task(subscribe_player_prestart(parse_prestart_msg))
@@ -326,20 +331,21 @@ class Player(FlagAndPlayer):
         t_countdown = uasyncio.create_task(monitor_countdown(self._playing_time, handle_countdown_end, handle_countdown_update))
         self._current_state_tasks.append(t_countdown)
 
-        def get_health():
-            return self.health
+        if self._mqtt_during_playing:
+            def get_health():
+                return self.health
 
-        def get_hits():
-            return self._hits
+            def get_hits():
+                return self._hits
 
-        def get_shots():
-            return self._shots
+            def get_shots():
+                return self._shots
 
-        def get_remaining_seconds():
-            return self._remaining_seconds
+            def get_remaining_seconds():
+                return self._remaining_seconds
 
-        t_mqtt = uasyncio.create_task(publish_mqtt_player(self._team, self._game_id, get_health, get_hits, get_shots, get_remaining_seconds))
-        self._current_state_tasks.append(t_mqtt)
+            t_mqtt = uasyncio.create_task(publish_mqtt_player(self._team, self._game_id, get_health, get_hits, get_shots, get_remaining_seconds))
+            self._current_state_tasks.append(t_mqtt)
 
     def _finishing(self):
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), self._hit_timeout)
@@ -369,7 +375,7 @@ def to_blaster_with_retry(fnc, args=(), kwargs=None):
 async def _monitor_button_press(button_press_fnc):
     last_value = boot_button.value()
     while True:
-        await uasyncio.sleep(0.1)
+        await uasyncio.sleep(0.5)
         new_value = boot_button.value()
         if last_value != new_value:
             last_value = new_value

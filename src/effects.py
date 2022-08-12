@@ -141,12 +141,12 @@ def effect_clean():
 async def monitor_button(event):
     last_value = boot_button.value()
     while True:
-        await uasyncio.sleep(0.1)
+        await uasyncio.sleep(0.5)
         new_value = boot_button.value()
         if last_value != new_value:
             last_value = new_value
             if new_value == 0:
                 print("button pressed")
                 event.set()
-                await uasyncio.sleep(0.1)
+                await uasyncio.sleep(0.5)
                 break
