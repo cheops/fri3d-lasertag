@@ -14,7 +14,7 @@ from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, cle
 from monitor_countdown import monitor_countdown
 from monitor_mqtt import publish_mqtt_flag, publish_mqtt_player, \
     subscribe_flag_prestart, subscribe_player_prestart,  parse_player_prestart_mqtt_msg, parse_flag_prestart_mqtt_msg
-
+from monitor_ble import demo
 
 class FlagAndPlayer(Profile):
     def __init__(self, team):
@@ -127,6 +127,15 @@ class Flag(FlagAndPlayer):
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
+
+        # ble callback for prestart
+        def parse_ble_prestart_msg(value):
+            #self._game_id = get_game_id(msg)
+            #self._playing_channel = get_playing_channel(msg)
+            self.set_new_event(PRESTART)
+                
+        t_ble = uasyncio.create_task(demo(parse_ble_prestart_msg))
+        self._current_state_tasks.append(t_ble)
 
         def parse_prestart_msg(mqtt_msg):
             p = parse_flag_prestart_mqtt_msg(mqtt_msg)
