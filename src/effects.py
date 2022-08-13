@@ -138,7 +138,7 @@ def pixels_clear():
 def effect_R2D2():
     event = uasyncio.Event()
     _thread.start_new_thread(BuzzerR2D2, (buzzer_pin, event))
-    uasyncio.get_event_loop().run_until_complete(draw_rainbow(2, event))
+    uasyncio.create_task(draw_rainbow(2, event))
 
 
 def effect_star_wars():
@@ -152,7 +152,7 @@ def effect_star_wars():
 def effect_reload():
     event = uasyncio.Event()
     _thread.start_new_thread(BuzzerReload, (buzzer_pin, event))
-    uasyncio.get_event_loop().run_until_complete(pixels_reload())
+    uasyncio.create_task(pixels_reload())
 
 
 def effect_clean():
