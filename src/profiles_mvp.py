@@ -13,7 +13,6 @@ from booting_screen import monitor as monitor_booting
 from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
 from monitor_countdown import monitor_countdown
 from monitor_mqtt import publish_mqtt_flag, publish_mqtt_player, \
-    subscribe_flag_prestart, subscribe_player_prestart,  parse_player_prestart_mqtt_msg, parse_flag_prestart_mqtt_msg
     subscribe_flag_prestart, subscribe_player_prestart, parse_player_prestart_mqtt_msg, parse_flag_prestart_mqtt_msg, \
     subscribe_device_stop
 from monitor_ble import demo
@@ -264,6 +263,7 @@ class Player(FlagAndPlayer):
             if self.ammo <= 0:
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
                 uasyncio.wait_for(effect_reload())
+                self.ammo = 100
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
 
         await monitor_blaster(self._team, _got_hit, _shot)
