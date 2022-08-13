@@ -5,7 +5,7 @@ import bluetooth
 import random
 import struct
 import time
-import micropython
+import re
 
 from ble_advertising import decode_services, decode_name
 
@@ -163,7 +163,8 @@ class BLELasertagCentral:
 
         elif event == _IRQ_GATTC_NOTIFY:
             # Check notify message.
-            conn_handle, value_handle, notify_data = data
+            start, end, mem = data # unpack the data (0,42,memoryview)
+            conn_handle, value_handle, notify_data = bytes(mem[start:end]).decode()
             if conn_handle == self._conn_handle and value_handle == self._value_handle:
                 self._update_value(notify_data)
                 if self._notify_callback:
@@ -221,33 +222,64 @@ async def demo(fnc_callback_prestart):
     ble = bluetooth.BLE()
     central = BLELasertagCentral(ble)
 
-    not_found = False
+
+    found = False
 
     def on_scan(addr_type, addr, name):
         if addr_type is not None:
+            nonlocal found
             print("Found master:", addr_type, addr, name)
             central.connect()
+            found = True
         else:
-            nonlocal not_found
-            not_found = True
             print("No master found.")
 
     central.scan(callback=on_scan)
+    await uasyncio.sleep(2.5)
+    while not found:
+        central.scan(callback=on_scan)
+        await uasyncio.sleep(2.5)
 
     # Wait for connection...
     while not central.is_connected():
         await uasyncio.sleep(0.1)
-        if not_found:
+        if not found:
             return
 
     print("Connected")
 
+    # this callback reassambles split bluetooth messages with start and stop byte "<data>"
+    # assembled complete messages end up in prestart_messages (without start and stop byte)
+    prestart_messages = []
+    prestart_msg_buffer = ""
+    def ble_notify_callback(data):
+        nonlocal prestart_msg_buffer
+        nonlocal prestart_messages
+        if data[0] == "<":
+            prestart_msg_buffer = data
+        if len(prestart_msg_buffer) != 0:
+            prestart_msg_buffer.append(data)
+        
+        if prestart_msg_buffer[0] == "<" and prestart_msg_buffer[-1] == ">":
+            prestart_messages.append(prestart_msg_buffer[1:-1])
+            prestart_msg_buffer = ""
+
+
+
     # Explicitly issue reads, using "print" as the callback.
-    while central.is_connected():
+    if central.is_connected():
         #central.read(callback=fnc_callback_prestart)
-        print("value", central.value())
-        central.on_notify(callback=fnc_callback_prestart)
-        await uasyncio.sleep(2)
+        central.on_notify(callback=ble_notify_callback)
+
+    try:
+        while True:
+            if len(prestart_messages) > 0:
+                mes = prestart_messages.pop()
+                fnc_callback_prestart(mes)
+            await uasyncio.sleep(1)
+    finally:
+        central.disconnect()
+        print("BLE Disconnected")
 
     # Alternative to the above, just show the most recently notified value.
     # while central.is_connected():
@@ -259,3 +291,27 @@ async def demo(fnc_callback_prestart):
 
 #if __name__ == "__main__":
     #demo()
+
+
+c_hiding_time = re.compile(r'([0-9]+)HT_')
+c_playing_time = re.compile(r'([0-9]+)PT_')
+c_hit_damage = re.compile(r'([0-9]+)HD_')
+c_hit_timeout = re.compile(r'([0-9]+)HTO_')
+c_shot_ammo = re.compile(r'([0-9]+)SA_')
+c_practicing_channel = re.compile(r'([0-9]+)PRC_')
+c_playing_channel = re.compile(r'([0-9]+)PLC_')
+c_game_id = re.compile(r'([0-9]+)G_')
+c_mqtt_during_playing = re.compile(r'([0-9]+)MQT_')
+
+
+def parse_prestart_ble_msg(prestart_ble_msg):
+    #player_60HT_300PT_30HD_5HTO_0SA_2PRC_4PLC0374G
+    parsed = {'hiding_time': int(c_hiding_time.search(prestart_ble_msg).group(1)),
+              'playing_time': int(c_playing_time.search(prestart_ble_msg).group(1)),
+              'hit_damage': int(c_hit_damage.search(prestart_ble_msg).group(1)),
+              'hit_timeout': int(c_hit_timeout.search(prestart_ble_msg).group(1)),
+              'shot_ammo': int(c_shot_ammo.search(prestart_ble_msg).group(1)),
+              'playing_channel': int(c_playing_channel.search(prestart_ble_msg).group(1)),
+              'game_id': c_game_id.search(prestart_ble_msg).group(1),
+              'mqtt_during_playing': bool(c_mqtt_during_playing.search(prestart_ble_msg).group(1))}
+    return parsed
