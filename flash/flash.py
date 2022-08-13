@@ -26,6 +26,6 @@ while True:
     for port in this_run:
         #print(port)
         if port not in last_run:
-            subprocess.Popen([r"python", "esptool.py", "-p", port.device, "-b", "460800", "--before", "default_reset", "--after", "hard_reset", "--chip", "esp32",  "write_flash", "--flash_mode", "dio", "--flash_size",  "detect", "-flash_freq",  "40m", "0x1000", "bootloader.bin", "0x8000", "partition-table.bin", "0x10000", "micropython.bin"])
+            subprocess.Popen([r"python", "-m", "esptool", "-p", port.device, "-b", "460800", "--before", "default_reset", "--after", "hard_reset", "--chip", "esp32",  "write_flash", "--flash_mode", "dio", "--flash_size",  "detect", "-flash_freq",  "40m", "0x1000", "bootloader.bin", "0x8000", "partition-table.bin", "0x10000", "micropython.bin"])
     last_run = this_run
     
