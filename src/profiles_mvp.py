@@ -228,6 +228,13 @@ class Flag(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
+        def ble_parse_device_stop(mqtt_msg):
+            if mqtt_msg == "stop":
+                self.set_new_event(DEVICE_STOP)
+
+        t_ble = uasyncio.create_task(demo(ble_parse_device_stop))
+        self._current_state_tasks.append(t_ble)
+
         if self._mqtt_during_all:
             def parse_device_stop(mqtt_msg):
                 if mqtt_msg == "stop":
@@ -301,6 +308,23 @@ class Player(FlagAndPlayer):
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
+
+        # ble callback for prestart
+        def received_ble_prestart_msg(ble_msg):
+            print("ble_value", ble_msg)
+            p = parse_prestart_ble_msg(ble_msg)
+            self._hiding_time = p.get('hiding_time', hiding_time)
+            self._playing_time = p.get('playing_time', playing_time)
+            self._hit_damage = p.get('hit_damage', hit_damage)
+            self._hit_timeout = p.get('hit_timeout', hit_timeout)
+            self._shot_ammo = p.get('shot_ammo', shot_ammo)
+            self._playing_channel = p.get('playing_channel', playing_channel)
+            self._game_id = p.get('game_id', self._game_id)
+            self._mqtt_during_playing = p.get('mqtt_during_playing', False)
+            self.set_new_event(PRESTART)
+
+        t_ble = uasyncio.create_task(demo(received_ble_prestart_msg))
+        self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
             def parse_prestart_msg(mqtt_msg):
@@ -393,6 +417,13 @@ class Player(FlagAndPlayer):
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
+
+        def ble_parse_device_stop(mqtt_msg):
+            if mqtt_msg == "stop":
+                self.set_new_event(DEVICE_STOP)
+
+        t_ble = uasyncio.create_task(demo(ble_parse_device_stop))
+        self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
             def parse_device_stop(mqtt_msg):
