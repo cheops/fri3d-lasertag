@@ -163,8 +163,7 @@ class BLELasertagCentral:
 
         elif event == _IRQ_GATTC_NOTIFY:
             # Check notify message.
-            start, end, mem = data # unpack the data (0,42,memoryview)
-            conn_handle, value_handle, notify_data = bytes(mem[start:end]).decode()
+            conn_handle, value_handle, notify_data = data
             if conn_handle == self._conn_handle and value_handle == self._value_handle:
                 self._update_value(notify_data)
                 if self._notify_callback:
@@ -211,7 +210,7 @@ class BLELasertagCentral:
 
     def _update_value(self, data):
         #self._value = struct.unpack("<h", data)[0] / 100
-        self._value = data
+        self._value = bytes(data).decode()
         return self._value
 
     def value(self):
@@ -257,10 +256,10 @@ async def demo(fnc_callback_prestart):
         nonlocal prestart_messages
         if data[0] == "<":
             prestart_msg_buffer = data
-        if len(prestart_msg_buffer) != 0:
-            prestart_msg_buffer.append(data)
+        elif len(prestart_msg_buffer) != 0:
+            prestart_msg_buffer = prestart_msg_buffer + data
         
-        if prestart_msg_buffer[0] == "<" and prestart_msg_buffer[-1] == ">":
+        if len(prestart_msg_buffer) > 0 and prestart_msg_buffer[0] == "<" and prestart_msg_buffer[-1] == ">":
             prestart_messages.append(prestart_msg_buffer[1:-1])
             prestart_msg_buffer = ""
 
@@ -301,7 +300,7 @@ c_shot_ammo = re.compile(r'([0-9]+)SA_')
 c_practicing_channel = re.compile(r'([0-9]+)PRC_')
 c_playing_channel = re.compile(r'([0-9]+)PLC_')
 c_game_id = re.compile(r'([0-9]+)G_')
-c_mqtt_during_playing = re.compile(r'([0-9]+)MQT_')
+c_mqtt_during_playing = re.compile(r'(False|True)MQT_')
 
 
 def parse_prestart_ble_msg(prestart_ble_msg):
