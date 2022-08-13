@@ -15,7 +15,7 @@ from monitor_countdown import monitor_countdown
 from monitor_mqtt import publish_mqtt_flag, publish_mqtt_player, \
     subscribe_flag_prestart, subscribe_player_prestart, parse_player_prestart_mqtt_msg, parse_flag_prestart_mqtt_msg, \
     subscribe_device_stop
-from monitor_ble import demo
+from monitor_ble import demo, parse_prestart_ble_msg
 
 
 class FlagAndPlayer(Profile):
@@ -36,6 +36,7 @@ class FlagAndPlayer(Profile):
         self._playing_channel = playing_channel
         self._game_id = 0
 
+        self._mqtt_during_all = False
         self._mqtt_during_playing = False
 
     def set_new_event(self, new_event):
@@ -133,16 +134,9 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
         # ble callback for prestart
-        def parse_ble_prestart_msg(value):
-            #self._game_id = get_game_id(msg)
-            #self._playing_channel = get_playing_channel(msg)
-            self.set_new_event(PRESTART)
-                
-        t_ble = uasyncio.create_task(demo(parse_ble_prestart_msg))
-        self._current_state_tasks.append(t_ble)
-
-        def parse_prestart_msg(mqtt_msg):
-            p = parse_flag_prestart_mqtt_msg(mqtt_msg)
+        def received_ble_prestart_msg(ble_msg):
+            print("ble_value", ble_msg)
+            p = parse_prestart_ble_msg(ble_msg)
             self._hiding_time = p.get('hiding_time', hiding_time)
             self._playing_time = p.get('playing_time', playing_time)
             self._hit_damage = p.get('hit_damage', hit_damage)
@@ -151,9 +145,24 @@ class Flag(FlagAndPlayer):
             self._game_id = p.get('game_id', self._game_id)
             self._mqtt_during_playing = p.get('mqtt_during_playing', False)
             self.set_new_event(PRESTART)
+                
+        t_ble = uasyncio.create_task(demo(received_ble_prestart_msg))
+        self._current_state_tasks.append(t_ble)
 
-        t_mqtt = uasyncio.create_task(subscribe_flag_prestart(parse_prestart_msg))
-        self._current_state_tasks.append(t_mqtt)
+        if self._mqtt_during_all:
+            def parse_prestart_msg(mqtt_msg):
+                p = parse_flag_prestart_mqtt_msg(mqtt_msg)
+                self._hiding_time = p.get('hiding_time', hiding_time)
+                self._playing_time = p.get('playing_time', playing_time)
+                self._hit_damage = p.get('hit_damage', hit_damage)
+                self._hit_timeout = p.get('hit_timeout', hit_timeout)
+                self._playing_channel = p.get('playing_channel', playing_channel)
+                self._game_id = p.get('game_id', self._game_id)
+                self._mqtt_during_playing = p.get('mqtt_during_playing', False)
+                self.set_new_event(PRESTART)
+
+            t_mqtt = uasyncio.create_task(subscribe_flag_prestart(parse_prestart_msg))
+            self._current_state_tasks.append(t_mqtt)
 
     def _hiding(self):
         #uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team], )), self._hit_timeout)
@@ -193,7 +202,7 @@ class Flag(FlagAndPlayer):
         t_countdown = uasyncio.create_task(monitor_countdown(self._playing_time, handle_countdown_end, handle_countdown_update))
         self._current_state_tasks.append(t_countdown)
 
-        if self._mqtt_during_playing:
+        if self._mqtt_during_all and self._mqtt_during_playing:
             def get_health():
                 return self.health
 
@@ -219,12 +228,13 @@ class Flag(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
-        def parse_device_stop(mqtt_msg):
-            if mqtt_msg == "stop":
-                self.set_new_event(DEVICE_STOP)
+        if self._mqtt_during_all:
+            def parse_device_stop(mqtt_msg):
+                if mqtt_msg == "stop":
+                    self.set_new_event(DEVICE_STOP)
 
-        t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
-        self._current_state_tasks.append(t_mqtt)
+            t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
+            self._current_state_tasks.append(t_mqtt)
 
 class Player(FlagAndPlayer):
 
@@ -292,20 +302,21 @@ class Player(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
-        def parse_prestart_msg(mqtt_msg):
-            p = parse_player_prestart_mqtt_msg(mqtt_msg)
-            self._hiding_time = p.get('hiding_time', hiding_time)
-            self._playing_time = p.get('playing_time', playing_time)
-            self._hit_damage = p.get('hit_damage', hit_damage)
-            self._hit_timeout = p.get('hit_timeout', hit_timeout)
-            self._shot_ammo = p.get('shot_ammo', shot_ammo)
-            self._playing_channel = p.get('playing_channel', playing_channel)
-            self._game_id = p.get('game_id', self._game_id)
-            self._mqtt_during_playing = p.get('mqtt_during_playing', False)
-            self.set_new_event(PRESTART)
+        if self._mqtt_during_all:
+            def parse_prestart_msg(mqtt_msg):
+                p = parse_player_prestart_mqtt_msg(mqtt_msg)
+                self._hiding_time = p.get('hiding_time', hiding_time)
+                self._playing_time = p.get('playing_time', playing_time)
+                self._hit_damage = p.get('hit_damage', hit_damage)
+                self._hit_timeout = p.get('hit_timeout', hit_timeout)
+                self._shot_ammo = p.get('shot_ammo', shot_ammo)
+                self._playing_channel = p.get('playing_channel', playing_channel)
+                self._game_id = p.get('game_id', self._game_id)
+                self._mqtt_during_playing = p.get('mqtt_during_playing', False)
+                self.set_new_event(PRESTART)
 
-        t_mqtt = uasyncio.create_task(subscribe_player_prestart(parse_prestart_msg))
-        self._current_state_tasks.append(t_mqtt)
+            t_mqtt = uasyncio.create_task(subscribe_player_prestart(parse_prestart_msg))
+            self._current_state_tasks.append(t_mqtt)
 
     def _hiding(self):
         uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_team, (team_blaster[self._team],)), self._hit_timeout)
@@ -351,7 +362,7 @@ class Player(FlagAndPlayer):
         t_countdown = uasyncio.create_task(monitor_countdown(self._playing_time, handle_countdown_end, handle_countdown_update))
         self._current_state_tasks.append(t_countdown)
 
-        if self._mqtt_during_playing:
+        if self._mqtt_during_all and self._mqtt_during_playing:
             def get_health():
                 return self.health
 
@@ -383,12 +394,13 @@ class Player(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
-        def parse_device_stop(mqtt_msg):
-            if mqtt_msg == "stop":
-                self.set_new_event(DEVICE_STOP)
+        if self._mqtt_during_all:
+            def parse_device_stop(mqtt_msg):
+                if mqtt_msg == "stop":
+                    self.set_new_event(DEVICE_STOP)
 
-        t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
-        self._current_state_tasks.append(t_mqtt)
+            t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
+            self._current_state_tasks.append(t_mqtt)
 
 
 def to_blaster_with_retry(fnc, args=(), kwargs=None):
