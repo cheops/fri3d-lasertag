@@ -1,4 +1,5 @@
 files = [
+    "ble_advertising.py",
     "booting_screen.py",
     "chango_16.py",
     "chango_32.py",
@@ -8,8 +9,10 @@ files = [
     "fri3d_logo.py",
     "hardware.py",
     "main.py",
+    "monitor_ble.py",
     "monitor_countdown.py",
     "monitor_ir.py",
+    "monitor_mqtt.py",
     "mvp.py",
     "profiles_common.py",
     "profiles_mvp.py",
