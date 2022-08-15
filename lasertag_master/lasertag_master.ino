@@ -90,7 +90,7 @@ void loop() {
 
         for (int countdown = 120; countdown >= 1; countdown--) {
           char buffer[40];
-          sprintf(buffer, "<%dHT_300PT_30HD_", countdown);
+          sprintf(buffer, "<%dHT_300PT_3HD_", countdown);
 
           //pCharacteristic->setValue("<" + countdown + "HT_300PT_30HD_");
           pCharacteristic->setValue(buffer);
@@ -112,7 +112,7 @@ void loop() {
         while (!buttons.getButton(1)) {};
             
         Serial.println("Send finish...");
-        pCharacteristic->setValue("finish");
+        pCharacteristic->setValue("<stop>");
         pCharacteristic->notify();
 
         // value++;
