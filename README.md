@@ -8,7 +8,7 @@ fri3d lasertag game for the badge + blaster
 1. copy Timeblaster/MicroPython/blaster.py to the filesystem
 3. copy all the files from src to the filesystem
 4. copy micropython-mqtt/mqtt_as/mqtt_as.py to the filesystem
-5. run main.py
+5. run main.py (or reset the badge, and main.py will run automatically)
 
 shoot away!!!
 
