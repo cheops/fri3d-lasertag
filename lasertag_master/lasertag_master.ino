@@ -5,6 +5,13 @@
 #include <Fri3dButtons.h>
 
 #define HIDING_TIME 120
+#define PLAYING_TIME 300
+#define HIT_DAMAGE 5
+#define HIT_TIMEOUT 3
+#define SHOT_AMMO 0
+#define PLAYING_CHANNEL 4
+#define GAME_ID 1234
+#define MQTT_DURING_PLAYING "False"
 
 Fri3dButtons buttons = Fri3dButtons();
 
@@ -142,13 +149,23 @@ void loop() {
       //Serial.print("countdown_hiding_time: ");
       //Serial.println(countdown_hiding_time);
       char buffer[60];
-      sprintf(buffer, "player_%dHT_300PT_3HD_5HTO_0SA_4PLC_0374G_FalseMQT_", countdown_hiding_time);
+      sprintf(buffer, "player_%dHT_%dPT_%dHD_%dHTO_%dSA_%dPLC_%d4G_%sMQT_", 
+        countdown_hiding_time, PLAYING_TIME, 
+        HIT_DAMAGE, HIT_TIMEOUT, SHOT_AMMO,
+        PLAYING_CHANNEL,
+        GAME_ID,
+        MQTT_DURING_PLAYING);
       pPrestartPlayerCharacteristic->setValue(buffer);
       pPrestartPlayerCharacteristic->notify();
       delay(10);
       Serial.println(buffer);
 
-      sprintf(buffer, "flag_%dHT_300PT_3HD_5HTO_4PLC_0374G_FalseMQT_", countdown_hiding_time);
+      sprintf(buffer, "flag_%dHT_%dPT_%dHD_%dHTO_%dPLC_%d4G_%sMQT_", 
+        countdown_hiding_time, PLAYING_TIME, 
+        HIT_DAMAGE, HIT_TIMEOUT, 
+        PLAYING_CHANNEL,
+        GAME_ID,
+        MQTT_DURING_PLAYING);
       pPrestartFlagCharacteristic->setValue(buffer);
       pPrestartFlagCharacteristic->notify();
       delay(10);
