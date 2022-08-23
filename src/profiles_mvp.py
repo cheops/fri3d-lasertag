@@ -4,7 +4,7 @@ from time import sleep
 from hardware import blaster, boot_button
 from profiles_common import Profile
 from mvp import BOOTING, PRACTICING, HIDING, PLAYING, FINISHING
-from mvp import DEAD, COUNTDOWN_END, DEVICE_STOP, PRESTART, BOOT
+from mvp import DEAD, COUNTDOWN_END, NEXT_ROUND, PRESTART, BOOT
 from mvp import playing_time, hiding_time, hit_damage, hit_timeout, shot_ammo, practicing_channel, playing_channel, invalid_channel
 from display import Display, DisplayFlag, DisplayPlayer
 from effects import effect_R2D2, pixels_clear, effect_reload
@@ -12,10 +12,11 @@ from teams import REX, GIGGLE, BUZZ, team_blaster
 from booting_screen import monitor as monitor_booting
 from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
 from monitor_countdown import monitor_countdown
+from message_parser import parse_flag_prestart_msg, parse_player_prestart_msg
 from monitor_mqtt import publish_mqtt_flag, publish_mqtt_player, \
-    subscribe_flag_prestart, subscribe_player_prestart, parse_player_prestart_mqtt_msg, parse_flag_prestart_mqtt_msg, \
-    subscribe_device_stop
-from monitor_ble import demo, parse_prestart_ble_msg
+    subscribe_flag_prestart, subscribe_player_prestart, subscribe_device_stop
+from monitor_ble import ble_listener, \
+    BLE_LISTEN_TYPE_PRESTART_FLAG, BLE_LISTEN_TYPE_PRESTART_PLAYER, BLE_LISTEN_TYPE_NEXT_ROUND
 
 
 class FlagAndPlayer(Profile):
@@ -134,24 +135,25 @@ class Flag(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
         # ble callback for prestart
-        def received_ble_prestart_msg(ble_msg):
-            print("ble_value", ble_msg)
-            p = parse_prestart_ble_msg(ble_msg)
-            self._hiding_time = p.get('hiding_time', hiding_time)
-            self._playing_time = p.get('playing_time', playing_time)
-            self._hit_damage = p.get('hit_damage', hit_damage)
-            self._hit_timeout = p.get('hit_timeout', hit_timeout)
-            self._playing_channel = p.get('playing_channel', playing_channel)
-            self._game_id = p.get('game_id', self._game_id)
-            self._mqtt_during_playing = p.get('mqtt_during_playing', False)
+        def received_ble_prestart_msg(parsed_ble_msg):
+            print("parsed_ble_msg", parsed_ble_msg)
+            self._hiding_time = parsed_ble_msg.get('hiding_time', hiding_time)
+            self._playing_time = parsed_ble_msg.get('playing_time', playing_time)
+            self._hit_damage = parsed_ble_msg.get('hit_damage', hit_damage)
+            self._hit_timeout = parsed_ble_msg.get('hit_timeout', hit_timeout)
+            self._playing_channel = parsed_ble_msg.get('playing_channel', playing_channel)
+            self._game_id = parsed_ble_msg.get('game_id', self._game_id)
+            self._mqtt_during_playing = parsed_ble_msg.get('mqtt_during_playing', False)
             self.set_new_event(PRESTART)
+            should_we_stop = True
+            return should_we_stop
                 
-        t_ble = uasyncio.create_task(demo(received_ble_prestart_msg))
+        t_ble = uasyncio.create_task(ble_listener(received_ble_prestart_msg, BLE_LISTEN_TYPE_PRESTART_FLAG))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
             def parse_prestart_msg(mqtt_msg):
-                p = parse_flag_prestart_mqtt_msg(mqtt_msg)
+                p = parse_flag_prestart_msg(mqtt_msg)
                 self._hiding_time = p.get('hiding_time', hiding_time)
                 self._playing_time = p.get('playing_time', playing_time)
                 self._hit_damage = p.get('hit_damage', hit_damage)
@@ -228,17 +230,19 @@ class Flag(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
-        def ble_parse_device_stop(mqtt_msg):
-            if mqtt_msg == "stop":
-                self.set_new_event(DEVICE_STOP)
+        def ble_parse_next_round(ble_msg):
+            if ble_msg == "next_round":
+                self.set_new_event(NEXT_ROUND)
+                should_we_stop = True
+                return should_we_stop
 
-        t_ble = uasyncio.create_task(demo(ble_parse_device_stop))
+        t_ble = uasyncio.create_task(ble_listener(ble_parse_next_round, BLE_LISTEN_TYPE_NEXT_ROUND))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
             def parse_device_stop(mqtt_msg):
                 if mqtt_msg == "stop":
-                    self.set_new_event(DEVICE_STOP)
+                    self.set_new_event(NEXT_ROUND)
 
             t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
             self._current_state_tasks.append(t_mqtt)
@@ -310,25 +314,26 @@ class Player(FlagAndPlayer):
         self._current_state_tasks.append(t_button)
 
         # ble callback for prestart
-        def received_ble_prestart_msg(ble_msg):
-            print("ble_value", ble_msg)
-            p = parse_prestart_ble_msg(ble_msg)
-            self._hiding_time = p.get('hiding_time', hiding_time)
-            self._playing_time = p.get('playing_time', playing_time)
-            self._hit_damage = p.get('hit_damage', hit_damage)
-            self._hit_timeout = p.get('hit_timeout', hit_timeout)
-            self._shot_ammo = p.get('shot_ammo', shot_ammo)
-            self._playing_channel = p.get('playing_channel', playing_channel)
-            self._game_id = p.get('game_id', self._game_id)
-            self._mqtt_during_playing = p.get('mqtt_during_playing', False)
+        def received_ble_prestart_msg(parsed_ble_msg):
+            print("parsed_ble_msg", parsed_ble_msg)
+            self._hiding_time = parsed_ble_msg.get('hiding_time', hiding_time)
+            self._playing_time = parsed_ble_msg.get('playing_time', playing_time)
+            self._hit_damage = parsed_ble_msg.get('hit_damage', hit_damage)
+            self._hit_timeout = parsed_ble_msg.get('hit_timeout', hit_timeout)
+            self._shot_ammo = parsed_ble_msg.get('shot_ammo', shot_ammo)
+            self._playing_channel = parsed_ble_msg.get('playing_channel', playing_channel)
+            self._game_id = parsed_ble_msg.get('game_id', self._game_id)
+            self._mqtt_during_playing = parsed_ble_msg.get('mqtt_during_playing', False)
             self.set_new_event(PRESTART)
+            should_we_stop = True
+            return should_we_stop
 
-        t_ble = uasyncio.create_task(demo(received_ble_prestart_msg))
+        t_ble = uasyncio.create_task(ble_listener(received_ble_prestart_msg, BLE_LISTEN_TYPE_PRESTART_PLAYER))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
             def parse_prestart_msg(mqtt_msg):
-                p = parse_player_prestart_mqtt_msg(mqtt_msg)
+                p = parse_player_prestart_msg(mqtt_msg)
                 self._hiding_time = p.get('hiding_time', hiding_time)
                 self._playing_time = p.get('playing_time', playing_time)
                 self._hit_damage = p.get('hit_damage', hit_damage)
@@ -418,17 +423,19 @@ class Player(FlagAndPlayer):
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
 
-        def ble_parse_device_stop(mqtt_msg):
-            if mqtt_msg == "stop":
-                self.set_new_event(DEVICE_STOP)
+        def ble_parse_next_round(ble_msg):
+            if ble_msg == "next_round":
+                self.set_new_event(NEXT_ROUND)
+                should_we_stop = True
+                return should_we_stop
 
-        t_ble = uasyncio.create_task(demo(ble_parse_device_stop))
+        t_ble = uasyncio.create_task(ble_listener(ble_parse_next_round, BLE_LISTEN_TYPE_NEXT_ROUND))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
             def parse_device_stop(mqtt_msg):
                 if mqtt_msg == "stop":
-                    self.set_new_event(DEVICE_STOP)
+                    self.set_new_event(NEXT_ROUND)
 
             t_mqtt = uasyncio.create_task(subscribe_device_stop(parse_device_stop))
             self._current_state_tasks.append(t_mqtt)

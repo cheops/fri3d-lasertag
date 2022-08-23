@@ -1,5 +1,5 @@
 # This example finds and connects to a lasertag master, it enabled notifications and stops on the first one it receives
-import uasyncio
+import time
 
 import bluetooth
 import gc
@@ -7,7 +7,7 @@ from binascii import hexlify
 from struct import pack, unpack
 
 from ble_advertising import decode_services, decode_name
-from message_parser import parse_flag_prestart_msg, parse_player_prestart_msg
+from message_parser import parse_flag_prestart_ble_msg, parse_player_prestart_ble_msg
 
 from micropython import const
 
@@ -268,7 +268,7 @@ class BLELasertagCentral:
         elif event == _IRQ_GATTC_CHARACTERISTIC_DONE:
             conn_handle, status = data
             # Characteristic query complete.
-            print("event _IRQ_GATTC_CHARACTERISTIC_DONE self._lasertag_start_handle", self._lasertag_start_handle,
+            print("event _IRQ_GATTC_CHARACTERISTIC_DONE self._lasertag_start_handle", self._lasertag_start_handle, 
                   "self._lasertag end_handle", self._lasertag_end_handle)
             if status == 0 and self._conn_handle == conn_handle:
                 self._ble.gattc_discover_descriptors(
@@ -324,7 +324,7 @@ class BLELasertagCentral:
                         current_characteristic.cccd_handle = dsc_handle
                         # this was the last descriptor, reset for next in loop
                         current_characteristic = None
-
+                
                 for characteristic in self._characteristics.values():
                     if characteristic.def_handle is None or characteristic.value_handle is None or characteristic.cccd_handle is None:
                         failed_connection()
@@ -429,16 +429,16 @@ class BLELasertagCentral:
             self._characteristics[uuid].write_callback = callback
             mode = 1
         self._ble.gattc_write(self._conn_handle, self._characteristics[uuid].value_handle, data, mode)
-
+    
     # first byte of cccd should be 1, first we read it, then write if needed
     def _enable_notifications(self, uuid):
-
+        
         def cccd_read_callback(value):
             orig = unpack('<bb', value)
             if orig[0] != 1:
                 cccd_value = pack('<bb', 1, 0)
                 self._ble.gattc_write(self._conn_handle, self._characteristics[uuid].cccd_handle, cccd_value, 0)
-
+        
         self._characteristics[uuid].read_callback = cccd_read_callback
         self._ble.gattc_read(self._conn_handle, self._characteristics[uuid].cccd_handle)
 
@@ -451,133 +451,128 @@ class BLELasertagCentral:
 BLE_LISTEN_TYPE_PRESTART_FLAG = const("BLE_LISTEN_TYPE_PRESTART_FLAG")
 BLE_LISTEN_TYPE_PRESTART_PLAYER = const("BLE_LISTEN_TYPE_PRESTART_PLAYER")
 BLE_LISTEN_TYPE_NEXT_ROUND = const("BLE_LISTEN_TYPE_NEXT_ROUND")
+listen_type = BLE_LISTEN_TYPE_PRESTART_PLAYER
 
+ble = bluetooth.BLE()
+if listen_type == BLE_LISTEN_TYPE_PRESTART_FLAG:
+    central = BLELasertagCentral(ble, _PRESTART_FLAG_UUID)
+elif listen_type == BLE_LISTEN_TYPE_PRESTART_PLAYER:
+    central = BLELasertagCentral(ble, _PRESTART_PLAYER_UUID)
+elif listen_type == BLE_LISTEN_TYPE_NEXT_ROUND:
+    central = BLELasertagCentral(ble, _NEXT_ROUND_UUID)
+else:
+    raise Exception("unknown listen_type:" + listen_type)
 
-async def ble_listener(listen_type, fnc_callback_ble_notify):
-    ble = bluetooth.BLE()
+BLE_START_SCANNING = const("BLE_START_SCANNING")
+BLE_SCANNING = const("BLE_SCANNING")
+BLE_MASTER_FOUND = const("BLE_MASTER_FOUND")
+BLE_CONNECTING = const("BLE_CONNECTING")
+BLE_CONNECTED = const("BLE_CONNECTED")
+BLE_LISTENING = const("BLE_LISTENING")
+BLE_MESSAGE_RECEIVED = const("BLE_MESSAGE_RECEIVED")
+BLE_INITIATE_DISCONNECT = const("BLE_INITIATE_DISCONNECT")
+BLE_DISCONNECTING = const("BLE_DISCONNECTING")
+BLE_END = const("BLE_END")
 
-    if listen_type == BLE_LISTEN_TYPE_PRESTART_FLAG:
-        central = BLELasertagCentral(ble, _PRESTART_FLAG_UUID)
-    elif listen_type == BLE_LISTEN_TYPE_PRESTART_PLAYER:
-        central = BLELasertagCentral(ble, _PRESTART_PLAYER_UUID)
-    elif listen_type == BLE_LISTEN_TYPE_NEXT_ROUND:
-        central = BLELasertagCentral(ble, _NEXT_ROUND_UUID)
+current_state = BLE_START_SCANNING
+
+def on_scan(addr_type, addr, name):
+    if addr_type is not None:
+        global current_state
+        a = hexlify(addr, '-').decode()
+        print("Found master:", a, name)
+        current_state = BLE_MASTER_FOUND
     else:
-        raise Exception("unknown listen_type:" + listen_type)
+        print("No master found.")
+        current_state = BLE_START_SCANNING
 
-    BLE_START_SCANNING = const("BLE_START_SCANNING")
-    BLE_SCANNING = const("BLE_SCANNING")
-    BLE_MASTER_FOUND = const("BLE_MASTER_FOUND")
-    BLE_CONNECTING = const("BLE_CONNECTING")
-    BLE_CONNECTED = const("BLE_CONNECTED")
-    BLE_LISTENING = const("BLE_LISTENING")
-    BLE_MESSAGE_RECEIVED = const("BLE_MESSAGE_RECEIVED")
-    BLE_INITIATE_DISCONNECT = const("BLE_INITIATE_DISCONNECT")
-    BLE_DISCONNECTING = const("BLE_DISCONNECTING")
-    BLE_END = const("BLE_END")
+def on_connect():
+    global current_state
+    current_state = BLE_CONNECTED
 
+def on_failed_connect():
+    global current_state
     current_state = BLE_START_SCANNING
 
-    def on_scan(addr_type, addr, name):
-        if addr_type is not None:
-            nonlocal current_state
-            a = hexlify(addr, '-').decode()
-            print("Found master:", a, name)
-            current_state = BLE_MASTER_FOUND
-        else:
-            print("No master found.")
-            current_state = BLE_START_SCANNING
+def on_disconnect():
+    global current_state
+    print("disconnected, BLE_START_SCANNING")
+    current_state = BLE_START_SCANNING
 
-    def on_connect():
-        nonlocal current_state
-        current_state = BLE_CONNECTED
+def on_final_disconnect():
+    global current_state
+    print("disconnected, ending loop")
+    current_state = BLE_END
 
-    def on_failed_connect():
-        nonlocal current_state
-        current_state = BLE_START_SCANNING
+ble_notify_messages = []
+def ble_notify_callback(data):
+    global current_state
+    global ble_notify_messages
+    ble_notify_messages.append(data)
+    current_state = BLE_MESSAGE_RECEIVED
 
-    def on_disconnect():
-        nonlocal current_state
-        print("disconnected, BLE_START_SCANNING")
-        current_state = BLE_START_SCANNING
+try:
+    while True:
+        if current_state == BLE_START_SCANNING:
+            print("BLE_START_SCANNING")
+            central.scan(callback=on_scan)
+            current_state = BLE_SCANNING
 
-    def on_final_disconnect():
-        nonlocal current_state
-        print("disconnected, ending loop")
-        current_state = BLE_END
+        elif current_state == BLE_SCANNING:
+            time.sleep(0.1)
 
-    ble_notify_messages = []
-    def ble_notify_callback(data):
-        nonlocal current_state
-        nonlocal ble_notify_messages
-        ble_notify_messages.append(data)
-        current_state = BLE_MESSAGE_RECEIVED
+        elif current_state == BLE_MASTER_FOUND:
+            #time.sleep(0.5)
+            central.connect(callback=on_connect, failed_callback=on_failed_connect, disconnect_callback=on_disconnect)
+            #time.sleep(0.1)
+            current_state = BLE_CONNECTING
 
-    try:
-        while True:
-            if current_state == BLE_START_SCANNING:
-                print("BLE_START_SCANNING")
-                central.scan(callback=on_scan)
-                current_state = BLE_SCANNING
+        elif current_state == BLE_CONNECTING:
+            time.sleep(0.1)
 
-            elif current_state == BLE_SCANNING:
-                await uasyncio.sleep(0.1)
+        elif current_state == BLE_CONNECTED:
+            print("BLE_CONNECTED")
+            central.on_notify(callback=ble_notify_callback)
+            current_state = BLE_LISTENING
+            
+        elif current_state == BLE_LISTENING:
+            time.sleep(0.1)
+            
+        elif current_state == BLE_MESSAGE_RECEIVED:
+            if not central.is_connected():
+                current_state = BLE_START_SCANNING
 
-            elif current_state == BLE_MASTER_FOUND:
-                #await uasyncio.sleep(0.5)
-                central.connect(callback=on_connect, failed_callback=on_failed_connect, disconnect_callback=on_disconnect)
-                #await uasyncio.sleep(0.1)
-                current_state = BLE_CONNECTING
-
-            elif current_state == BLE_CONNECTING:
-                await uasyncio.sleep(0.1)
-
-            elif current_state == BLE_CONNECTED:
-                print("BLE_CONNECTED")
-                central.on_notify(callback=ble_notify_callback)
-                current_state = BLE_LISTENING
-
-            elif current_state == BLE_LISTENING:
-                await uasyncio.sleep(0.1)
-                if not central.is_connected():
-                    current_state = BLE_START_SCANNING
-
-            elif current_state == BLE_MESSAGE_RECEIVED:
-                if not central.is_connected():
-                    current_state = BLE_START_SCANNING
-
-                if len(ble_notify_messages) > 0:
-                    mes = ble_notify_messages.pop()
-                    print("got notified message", mes)
-                    if listen_type == BLE_LISTEN_TYPE_PRESTART_FLAG:
-                        parsed_mes = parse_flag_prestart_msg(mes)
-                    elif listen_type == BLE_LISTEN_TYPE_PRESTART_PLAYER:
-                        parsed_mes = parse_player_prestart_msg(mes)
-                    elif listen_type == BLE_LISTEN_TYPE_NEXT_ROUND:
-                        parsed_mes = mes
-                    else:
-                        raise Exception("unknown listen_type:" + listen_type)
-
-                    should_we_stop = fnc_callback_ble_notify(parsed_mes)
-                    if should_we_stop:
-                        current_state = BLE_INITIATE_DISCONNECT
+            if len(ble_notify_messages) > 0:
+                mes = ble_notify_messages.pop()
+                print("got notified message", mes)
+                if listen_type == BLE_LISTEN_TYPE_PRESTART_FLAG:
+                    parsed_mes = parse_flag_prestart_ble_msg(mes)
+                elif listen_type == BLE_LISTEN_TYPE_PRESTART_PLAYER:
+                    parsed_mes = parse_player_prestart_ble_msg(mes)
+                elif listen_type == BLE_LISTEN_TYPE_NEXT_ROUND:
+                    parsed_mes = mes
                 else:
-                    await uasyncio.sleep(0.5)
+                    raise Exception("unknown listen_type:" + listen_type)
 
-            elif current_state == BLE_INITIATE_DISCONNECT:
-                await uasyncio.sleep(0.5)  # at least 10 x connection_timeout (default connection_timeout is between 30000us and 50000us)
-                central.disconnect(on_final_disconnect)
-                current_state = BLE_DISCONNECTING
+                if parsed_mes['type'] == 'player':
+                    current_state = BLE_INITIATE_DISCONNECT
+            else:
+                time.sleep(0.5)
 
-            elif current_state == BLE_DISCONNECTING:
-                await uasyncio.sleep(0.1)
+        elif current_state == BLE_INITIATE_DISCONNECT:
+            time.sleep(0.5) # at least 10 x connection_timeout (default connection_timeout is between 30000us and 50000us)
+            central.disconnect(on_final_disconnect)
+            current_state = BLE_DISCONNECTING
 
-            elif current_state == BLE_END:
-                break
+        elif current_state == BLE_DISCONNECTING:
+            time.sleep(0.1)
+        
+        elif current_state == BLE_END:
+            break
 
-    finally:
-        if central.is_connected():
-            central.disconnect(None)
-            print("BLE Disconnected")
-            gc.collect()
+finally:
+    if central.is_connected():
+        central.disconnect(None)
+        print("BLE Disconnected")
+        gc.collect()
 

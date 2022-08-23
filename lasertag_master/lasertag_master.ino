@@ -4,31 +4,35 @@
 #include <BLE2902.h>
 #include <Fri3dButtons.h>
 
+#define HIDING_TIME 120
+
 Fri3dButtons buttons = Fri3dButtons();
 
 BLEServer* pServer = NULL;
-BLECharacteristic* pCharacteristic = NULL;
-bool deviceConnected = false;
-bool oldDeviceConnected = false;
-uint32_t value = 0;
+BLECharacteristic* pPrestartFlagCharacteristic = NULL;
+BLECharacteristic* pPrestartPlayerCharacteristic = NULL;
+BLECharacteristic* pNextRoundCharacteristic = NULL;
+bool newDeviceConnectedToHandle = false;
+bool button0_pressed = false;
+bool button1_pressed = false;
 
-// See the following for generating UUIDs:
-// https://www.uuidgenerator.net/
+long long startMicros = esp_timer_get_time();
 
-//#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-//#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-
-#define SERVICE_UUID        "936b"
-#define CHARACTERISTIC_UUID "c20a"
+#define LASERTAG_SERVICE_UUID        "936b"
+#define PRESTART_FLAG_CHARACTERISTIC_UUID "c20a"
+#define PRESTART_PLAYER_CHARACTERISTIC_UUID "c20b"
+#define NEXT_ROUND_CHARACTERISTIC_UUID "c20c"
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
-      deviceConnected = true;
-      BLEDevice::startAdvertising();
+      Serial.println("MyServerCallbacks onConnect");
+      //BLEDevice::startAdvertising(); // if a client connects, advertising normally stops, so start it again
+      //^done in loop
+      newDeviceConnectedToHandle = true;
     };
 
     void onDisconnect(BLEServer* pServer) {
-      deviceConnected = false;
+      Serial.println("MyServerCallbacks onDisconnect");
     }
 };
 
@@ -38,100 +42,149 @@ void setup() {
   Serial.begin(115200);
 
   // Create the BLE Device
-  BLEDevice::init("ESP32");
-  uint16_t mtu = 128;
-  BLEDevice::setMTU(128);
+  BLEDevice::init("lasertag_master"); // max 29 char
+  uint16_t mtu = 517;
+  BLEDevice::setMTU(mtu);
 
   // Create the BLE Server
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  BLEService *pLasertagService = pServer->createService(LASERTAG_SERVICE_UUID);
+
 
   // Create a BLE Characteristic
-  pCharacteristic = pService->createCharacteristic(
-                      CHARACTERISTIC_UUID,
-                      BLECharacteristic::PROPERTY_READ   |
-                      BLECharacteristic::PROPERTY_WRITE  |
-                      BLECharacteristic::PROPERTY_NOTIFY |
-                      BLECharacteristic::PROPERTY_INDICATE
+  pPrestartFlagCharacteristic = pLasertagService->createCharacteristic(
+                      PRESTART_FLAG_CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
                     );
-
-  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor
-  pCharacteristic->addDescriptor(new BLE2902());
+  pPrestartFlagCharacteristic->addDescriptor(new BLE2902());
+
+
+  // Create a BLE Characteristic
+  pPrestartPlayerCharacteristic = pLasertagService->createCharacteristic(
+                      PRESTART_PLAYER_CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  // Create a BLE Descriptor
+  pPrestartPlayerCharacteristic->addDescriptor(new BLE2902());
+
+
+  // Create a BLE Characteristic
+  pNextRoundCharacteristic = pLasertagService->createCharacteristic(
+                      NEXT_ROUND_CHARACTERISTIC_UUID,
+                      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  // Create a BLE Descriptor
+  pNextRoundCharacteristic->addDescriptor(new BLE2902());
 
   // Start the service
-  pService->start();
+  pLasertagService->start();
 
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->addServiceUUID(LASERTAG_SERVICE_UUID);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
   BLEDevice::startAdvertising();
 
   pinMode( BUTTON0_PIN, INPUT_PULLUP );
   pinMode( BUTTON1_PIN, INPUT_PULLUP );
-  
+
   Serial.println("Waiting a client connection to notify...");
 }
 
+bool prestartCounting = false;
+long long lastMicrosPrestart = 0;
+const long prestartInterval = 1000000; // 1 second
+int countdown_hiding_time = HIDING_TIME;
+bool nextRound = false;
+const long nextRoundInterval = 1000000; // 1 second
+const int nextRoundRepeat = 60;
+int nextRoundRepeatCounter = nextRoundRepeat;
+
+void init_prestart_countdown() {
+  countdown_hiding_time = HIDING_TIME;
+  prestartCounting = false;
+}
+
 void loop() {
-    // notify changed value
-    if (deviceConnected) {
-        // pCharacteristic->setValue((uint8_t*)&value, 4);
-        Serial.println("Waiting for button press...");
-        
-        while (!buttons.getButton(0)) {};
+  //Serial.println("running loop");
 
-        Serial.println("Send start...");
 
-        for (int countdown = 120; countdown >= 1; countdown--) {
-          char buffer[40];
-          sprintf(buffer, "<%dHT_300PT_3HD_", countdown);
+  if (buttons.getButton(0)) {
+    button0_pressed = true;
+  }
+  if (buttons.getButton(1)) {
+    button1_pressed = true;
+  }
+  startMicros = esp_timer_get_time();
 
-          //pCharacteristic->setValue("<" + countdown + "HT_300PT_30HD_");
-          pCharacteristic->setValue(buffer);
-          pCharacteristic->notify();
-          delay(10);
-          pCharacteristic->setValue("5HTO_0SA_4PLC");
-          pCharacteristic->notify();
-          delay(10);
-          pCharacteristic->setValue("_0374G_FalseMQT_>");
-          pCharacteristic->notify();
-          delay(1000);
+  if (button0_pressed) {
+    prestartCounting = true;
+    button0_pressed = false;
+  }
 
-          
-          Serial.print("Countdown: ");
-          Serial.println(countdown);
-          delay(1000);
-        }
+  if (button1_pressed) {
+    init_prestart_countdown();
+    nextRound = true;
+    button1_pressed = false;
+    
+  }
 
-        while (!buttons.getButton(1)) {};
-            
-        Serial.println("Send finish...");
-        pCharacteristic->setValue("<stop>");
-        pCharacteristic->notify();
+  if (prestartCounting) {
+    
+    if (startMicros - lastMicrosPrestart >= prestartInterval) {
+      lastMicrosPrestart = startMicros;
 
-        // value++;
-        // delay(10); // bluetooth stack will go into congestion, if too many packets are sent, in 6 hours test i was able to go as low as 3ms
+      //Serial.print("countdown_hiding_time: ");
+      //Serial.println(countdown_hiding_time);
+      char buffer[60];
+      sprintf(buffer, "player_%dHT_300PT_3HD_5HTO_0SA_4PLC_0374G_FalseMQT_", countdown_hiding_time);
+      pPrestartPlayerCharacteristic->setValue(buffer);
+      pPrestartPlayerCharacteristic->notify();
+      delay(10);
+      Serial.println(buffer);
+
+      sprintf(buffer, "flag_%dHT_300PT_3HD_5HTO_4PLC_0374G_FalseMQT_", countdown_hiding_time);
+      pPrestartFlagCharacteristic->setValue(buffer);
+      pPrestartFlagCharacteristic->notify();
+      delay(10);
+      Serial.println(buffer);
+
+      if (countdown_hiding_time > 0) {
+        countdown_hiding_time --;
+      } else {
+        init_prestart_countdown();
+      }
+      
     }
-    // disconnecting
-    if (!deviceConnected && oldDeviceConnected) {
-        delay(500); // give the bluetooth stack the chance to get things ready
-        pServer->startAdvertising(); // restart advertising
-        Serial.println("start advertising");
-        oldDeviceConnected = deviceConnected;
-    }
-    // connecting
-    if (deviceConnected && !oldDeviceConnected) {
-        // do stuff here on connecting
-        oldDeviceConnected = deviceConnected;
-        Serial.println("Send stop...");
-        
-        pCharacteristic->setValue("stop");
-        pCharacteristic->notify();
-    }
+  }
+
+  if (nextRound) {
+    if (startMicros - lastMicrosPrestart >= nextRoundInterval) {
+      lastMicrosPrestart = startMicros;
+      pNextRoundCharacteristic->setValue("next_round");
+      pNextRoundCharacteristic->notify();
+      delay(10);
+
+      if (nextRoundRepeatCounter > 0) {
+        nextRoundRepeatCounter --;
+      } else {
+        nextRound = false;
+        nextRoundRepeatCounter = nextRoundRepeat;
+      }
+    }    
+  }
+
+
+  // connecting: if a client connects, advertising normally stops, so start it again
+  if (newDeviceConnectedToHandle) {
+    Serial.println("client connected, restart advertising, so more clients can connect");
+    BLEDevice::startAdvertising(); // restart advertising
+    newDeviceConnectedToHandle = false;
+  }
+
 }

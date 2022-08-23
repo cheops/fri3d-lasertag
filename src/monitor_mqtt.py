@@ -4,7 +4,6 @@ from mqtt_as import MQTTClient, config
 import uasyncio
 import ubinascii
 from machine import unique_id
-import re
 
 from teams import team_mqtt
 
@@ -126,39 +125,3 @@ async def close_client():
         client.close()
         client = None
         gc.collect()
-
-
-c_hiding_time = re.compile(r'([0-9]+)HT_')
-c_playing_time = re.compile(r'([0-9]+)PT_')
-c_hit_damage = re.compile(r'([0-9]+)HD_')
-c_hit_timeout = re.compile(r'([0-9]+)HTO_')
-c_shot_ammo = re.compile(r'([0-9]+)SA_')
-c_practicing_channel = re.compile(r'([0-9]+)PRC_')
-c_playing_channel = re.compile(r'([0-9]+)PLC_')
-c_game_id = re.compile(r'([0-9]+)G_')
-c_mqtt_during_playing = re.compile(r'([0-9]+)MQT_')
-
-
-def parse_player_prestart_mqtt_msg(player_prestart):
-    #player_60HT_300PT_30HD_5HTO_0SA_2PRC_4PLC0374G
-    parsed = {'hiding_time': int(c_hiding_time.search(player_prestart).group(1)),
-              'playing_time': int(c_playing_time.search(player_prestart).group(1)),
-              'hit_damage': int(c_hit_damage.search(player_prestart).group(1)),
-              'hit_timeout': int(c_hit_timeout.search(player_prestart).group(1)),
-              'shot_ammo': int(c_shot_ammo.search(player_prestart).group(1)),
-              'playing_channel': int(c_playing_channel.search(player_prestart).group(1)),
-              'game_id': c_game_id.search(player_prestart).group(1),
-              'mqtt_during_playing': bool(c_mqtt_during_playing.search(player_prestart).group(1))}
-    return parsed
-
-
-def parse_flag_prestart_mqtt_msg(player_prestart):
-    #flag_60HT_300PT_30HD_5HTO_2PRC_4PLC0374G
-    parsed = {'hiding_time': int(c_hiding_time.search(player_prestart).group(1)),
-              'playing_time': int(c_playing_time.search(player_prestart).group(1)),
-              'hit_damage': int(c_hit_damage.search(player_prestart).group(1)),
-              'hit_timeout': int(c_hit_timeout.search(player_prestart).group(1)),
-              'playing_channel': int(c_playing_channel.search(player_prestart).group(1)),
-              'game_id': c_game_id.search(player_prestart).group(1),
-              'mqtt_during_playing': bool(c_mqtt_during_playing.search(player_prestart).group(1))}
-    return parsed

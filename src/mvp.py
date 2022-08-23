@@ -13,7 +13,7 @@ CONFIRM_PROFILE = Event('confirm_profile')
 PRESTART = Event('prestart')
 COUNTDOWN_END = Event('countdown_end')
 DEAD = Event('dead')
-DEVICE_STOP = Event('device_stop')
+NEXT_ROUND = Event('next_round')
 
 transitions_mvp = [
     Transition(CONFIRM_PROFILE, BOOTING, PRACTICING),
@@ -22,7 +22,7 @@ transitions_mvp = [
     Transition(COUNTDOWN_END, PLAYING, FINISHING),
     Transition(DEAD, PLAYING, FINISHING),
     Transition(BOOT, FINISHING, BOOTING),
-    Transition(DEVICE_STOP, FINISHING, PRACTICING),
+    Transition(NEXT_ROUND, FINISHING, PRACTICING),
 ]
 
 hiding_time = 10
