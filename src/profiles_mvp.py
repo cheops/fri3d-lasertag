@@ -280,12 +280,13 @@ class Player(FlagAndPlayer):
                 self.ammo -= self.shot_ammo
             if self.ammo < 0:
                 self.ammo = 0
+            self._my_display.draw_upper_right(self.ammo)
             if self.ammo <= 0:
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
                 uasyncio.wait_for(effect_reload())
                 self.ammo = 100
+                self._my_display.draw_upper_right(self.ammo)
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': False}), self._hit_timeout)
-            self._my_display.draw_upper_right(self.ammo)
 
         await monitor_blaster(self._team, _got_hit, _shot)
 
