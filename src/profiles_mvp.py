@@ -275,6 +275,12 @@ class Player(FlagAndPlayer):
                 return False
 
         def _shot():
+            async def reload_display():
+                for ammo in range(0, 100):
+                    self.ammo = ammo
+                    self._my_display.draw_upper_right(self.ammo)
+                    await uasyncio.sleep(0.1)
+
             self._shots += 1
             if self.ammo > 0:
                 self.ammo -= self.shot_ammo
@@ -284,10 +290,7 @@ class Player(FlagAndPlayer):
             if self.ammo <= 0:
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
                 uasyncio.wait_for(effect_reload(), 11)
-                for ammo in range(0, 100):
-                    self.ammo = ammo
-                    self._my_display.draw_upper_right(self.ammo)
-                    await uasyncio.sleep(1)
+                uasyncio.wait_for(reload_display(), 11)
                 self.ammo = 100
                 self._my_display.draw_upper_right(self.ammo)
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': False}), self._hit_timeout)
