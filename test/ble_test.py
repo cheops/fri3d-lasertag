@@ -7,7 +7,7 @@ from binascii import hexlify
 from struct import pack, unpack
 
 from ble_advertising import decode_services, decode_name
-from message_parser import parse_flag_prestart_ble_msg, parse_player_prestart_ble_msg
+from message_parser import parse_flag_prestart_msg, parse_player_prestart_msg
 
 from micropython import const
 
@@ -546,9 +546,9 @@ try:
                 mes = ble_notify_messages.pop()
                 print("got notified message", mes)
                 if listen_type == BLE_LISTEN_TYPE_PRESTART_FLAG:
-                    parsed_mes = parse_flag_prestart_ble_msg(mes)
+                    parsed_mes = parse_flag_prestart_msg(mes)
                 elif listen_type == BLE_LISTEN_TYPE_PRESTART_PLAYER:
-                    parsed_mes = parse_player_prestart_ble_msg(mes)
+                    parsed_mes = parse_player_prestart_msg(mes)
                 elif listen_type == BLE_LISTEN_TYPE_NEXT_ROUND:
                     parsed_mes = mes
                 else:
