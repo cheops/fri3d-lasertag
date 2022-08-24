@@ -272,8 +272,8 @@ class BLELasertagCentral:
                   "self._lasertag end_handle", self._lasertag_end_handle)
             if status == 0 and self._conn_handle == conn_handle:
                 self._ble.gattc_discover_descriptors(
-                        self._conn_handle, self._lasertag_start_handle, self._lasertag_end_handle
-                    )
+                    self._conn_handle, self._lasertag_start_handle, self._lasertag_end_handle
+                )
             else:
                 print("Failed to find lasertag characteristic.")
                 try:
@@ -315,12 +315,10 @@ class BLELasertagCentral:
                                 if dsc_handle == characteristic.def_handle:
                                     current_characteristic = characteristic
                                     break
-                            if current_characteristic is None:
-                                failed_connection()
-                    elif uuid == current_characteristic.uuid:
+                    elif current_characteristic is not None and uuid == current_characteristic.uuid:
                         if dsc_handle != current_characteristic.value_handle:
                             print("discovered value handles do not match", dsc_handle, current_characteristic.value_handle)
-                    elif uuid == _CCCD_UUID:
+                    elif current_characteristic is not None and uuid == _CCCD_UUID:
                         current_characteristic.cccd_handle = dsc_handle
                         # this was the last descriptor, reset for next in loop
                         current_characteristic = None
