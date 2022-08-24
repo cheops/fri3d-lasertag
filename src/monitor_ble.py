@@ -1,4 +1,6 @@
 # This example finds and connects to a lasertag master, it enabled notifications and stops on the first one it receives
+import time
+
 import uasyncio
 
 import bluetooth
@@ -213,11 +215,13 @@ class BLELasertagCentral:
         elif event == _IRQ_PERIPHERAL_CONNECT:
             # Connect successful.
             conn_handle, addr_type, addr = data
-            print("event _IRQ_PERIPHERAL_CONNECT conn_handle", conn_handle, "addr_type", addr_type, "addr", addr)
+            print("event _IRQ_PERIPHERAL_CONNECT conn_handle", conn_handle, "addr_type", addr_type, "addr", bytes(addr))
             if addr_type == self._addr_type and addr == self._addr:
                 self._conn_handle = conn_handle
                 self._ble.config(mtu=517)
+                time.sleep(0.05)
                 self._ble.gattc_exchange_mtu(self._conn_handle)
+                time.sleep(0.05)
                 self._ble.gattc_discover_services(self._conn_handle)
 
         elif event == _IRQ_PERIPHERAL_DISCONNECT:
@@ -249,6 +253,7 @@ class BLELasertagCentral:
             else:
                 print("Failed to find lasertag service.")
                 try:
+                    time.sleep(0.05)
                     self._ble.gap_disconnect(self._conn_handle)
                 except Exception as e:
                     print(e)
@@ -277,6 +282,7 @@ class BLELasertagCentral:
             else:
                 print("Failed to find lasertag characteristic.")
                 try:
+                    time.sleep(0.05)
                     self._ble.gap_disconnect(self._conn_handle)
                 except Exception as e:
                     print(e)
@@ -297,9 +303,10 @@ class BLELasertagCentral:
             def failed_connection():
                 print("Failed to find lasertag descriptor.")
                 try:
+                    time.sleep(0.05)
                     self._ble.gap_disconnect(self._conn_handle)
-                except Exception as e:
-                    print(e)
+                except Exception as ex:
+                    print(ex)
                 if self._conn_failed_callback is not None:
                     self._conn_failed_callback()
                     self._conn_failed_callback = None
