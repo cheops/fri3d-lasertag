@@ -285,7 +285,7 @@ class Player(FlagAndPlayer):
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
                 uasyncio.wait_for(effect_reload())
                 self.ammo = 100
-                uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
+                uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': False}), self._hit_timeout)
 
         await monitor_blaster(self._team, _got_hit, _shot)
 
