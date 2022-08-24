@@ -287,7 +287,7 @@ class Player(FlagAndPlayer):
                 for ammo in range(0, 100):
                     self.ammo = ammo
                     self._my_display.draw_upper_right(self.ammo)
-                    uasyncio.sleep(1)
+                    await uasyncio.sleep(1)
                 self.ammo = 100
                 self._my_display.draw_upper_right(self.ammo)
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': False}), self._hit_timeout)
