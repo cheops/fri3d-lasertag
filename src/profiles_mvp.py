@@ -147,8 +147,8 @@ class Flag(FlagAndPlayer):
             self.set_new_event(PRESTART)
             should_we_stop = True
             return should_we_stop
-                
-        t_ble = uasyncio.create_task(ble_listener(received_ble_prestart_msg, BLE_LISTEN_TYPE_PRESTART_FLAG))
+
+        t_ble = uasyncio.create_task(ble_listener(BLE_LISTEN_TYPE_PRESTART_FLAG, received_ble_prestart_msg))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
@@ -236,7 +236,7 @@ class Flag(FlagAndPlayer):
                 should_we_stop = True
                 return should_we_stop
 
-        t_ble = uasyncio.create_task(ble_listener(ble_parse_next_round, BLE_LISTEN_TYPE_NEXT_ROUND))
+        t_ble = uasyncio.create_task(ble_listener(BLE_LISTEN_TYPE_NEXT_ROUND, ble_parse_next_round))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
@@ -328,7 +328,7 @@ class Player(FlagAndPlayer):
             should_we_stop = True
             return should_we_stop
 
-        t_ble = uasyncio.create_task(ble_listener(received_ble_prestart_msg, BLE_LISTEN_TYPE_PRESTART_PLAYER))
+        t_ble = uasyncio.create_task(ble_listener(BLE_LISTEN_TYPE_PRESTART_PLAYER, received_ble_prestart_msg))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
@@ -429,7 +429,7 @@ class Player(FlagAndPlayer):
                 should_we_stop = True
                 return should_we_stop
 
-        t_ble = uasyncio.create_task(ble_listener(ble_parse_next_round, BLE_LISTEN_TYPE_NEXT_ROUND))
+        t_ble = uasyncio.create_task(ble_listener(BLE_LISTEN_TYPE_NEXT_ROUND, ble_parse_next_round))
         self._current_state_tasks.append(t_ble)
 
         if self._mqtt_during_all:
