@@ -4,8 +4,8 @@
 #include <BLE2902.h>
 #include <Fri3dButtons.h>
 
-#define HIDING_TIME 120
-#define PLAYING_TIME 300
+#define HIDING_TIME 10
+#define PLAYING_TIME 30
 #define HIT_DAMAGE 5
 #define HIT_TIMEOUT 3
 #define SHOT_AMMO 0
@@ -117,6 +117,11 @@ void init_prestart_countdown() {
   prestartCounting = false;
 }
 
+void init_next_round_countdown() {
+  nextRound = false;
+  nextRoundRepeatCounter = nextRoundRepeat;
+}
+
 void loop() {
   //Serial.println("running loop");
 
@@ -130,6 +135,7 @@ void loop() {
   startMicros = esp_timer_get_time();
 
   if (button0_pressed) {
+    init_next_round_countdown();
     prestartCounting = true;
     button0_pressed = false;
   }
@@ -138,7 +144,6 @@ void loop() {
     init_prestart_countdown();
     nextRound = true;
     button1_pressed = false;
-    
   }
 
   if (prestartCounting) {
@@ -187,11 +192,14 @@ void loop() {
       pNextRoundCharacteristic->notify();
       delay(10);
 
+      Serial.print("nextRoundRepeatCounter: ");
+      Serial.print(nextRoundRepeatCounter);
+      Serial.println(" next_round");
+
       if (nextRoundRepeatCounter > 0) {
         nextRoundRepeatCounter --;
       } else {
-        nextRound = false;
-        nextRoundRepeatCounter = nextRoundRepeat;
+        init_next_round_countdown();
       }
     }    
   }
