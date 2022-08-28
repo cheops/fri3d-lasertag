@@ -221,8 +221,6 @@ class BLELasertagCentral:
                 self._ble.config(mtu=517)
                 time.sleep(0.05)
                 self._ble.gattc_exchange_mtu(self._conn_handle)
-                time.sleep(0.05)
-                self._ble.gattc_discover_services(self._conn_handle)
 
         elif event == _IRQ_PERIPHERAL_DISCONNECT:
             # Disconnect (either initiated by us or the remote end).
@@ -234,6 +232,11 @@ class BLELasertagCentral:
             if self._conn_handle is not None and conn_handle == self._conn_handle:
                 # If it was initiated by us, it'll already be reset.
                 self._reset()
+
+        elif event == _IRQ_MTU_EXCHANGED:
+            conn_handle, mtu = data
+            print("event _IRQ_MTU_EXCHANGED mtu", mtu)
+            self._ble.gattc_discover_services(self._conn_handle)
 
         elif event == _IRQ_GATTC_SERVICE_RESULT:
             # Connected device returned a service.
@@ -383,9 +386,6 @@ class BLELasertagCentral:
                             characteristic.notify_callback(characteristic.value)
                         break
 
-        elif event == _IRQ_MTU_EXCHANGED:
-            conn_handle, mtu = data
-            print("event _IRQ_MTU_EXCHANGED mtu", mtu)
 
     # Returns true if we've successfully connected and discovered characteristics and descriptors.
     def is_connected(self):

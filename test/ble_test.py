@@ -213,12 +213,12 @@ class BLELasertagCentral:
         elif event == _IRQ_PERIPHERAL_CONNECT:
             # Connect successful.
             conn_handle, addr_type, addr = data
-            print("event _IRQ_PERIPHERAL_CONNECT conn_handle", conn_handle, "addr_type", addr_type, "addr", addr)
+            print("event _IRQ_PERIPHERAL_CONNECT conn_handle", conn_handle, "addr_type", addr_type, "addr", bytes(addr))
             if addr_type == self._addr_type and addr == self._addr:
                 self._conn_handle = conn_handle
                 self._ble.config(mtu=517)
+                time.sleep(0.05)
                 self._ble.gattc_exchange_mtu(self._conn_handle)
-                self._ble.gattc_discover_services(self._conn_handle)
 
         elif event == _IRQ_PERIPHERAL_DISCONNECT:
             # Disconnect (either initiated by us or the remote end).
@@ -230,6 +230,11 @@ class BLELasertagCentral:
             if self._conn_handle is not None and conn_handle == self._conn_handle:
                 # If it was initiated by us, it'll already be reset.
                 self._reset()
+
+        elif event == _IRQ_MTU_EXCHANGED:
+            conn_handle, mtu = data
+            print("event _IRQ_MTU_EXCHANGED mtu", mtu)
+            self._ble.gattc_discover_services(self._conn_handle)
 
         elif event == _IRQ_GATTC_SERVICE_RESULT:
             # Connected device returned a service.
@@ -249,6 +254,7 @@ class BLELasertagCentral:
             else:
                 print("Failed to find lasertag service.")
                 try:
+                    time.sleep(0.05)
                     self._ble.gap_disconnect(self._conn_handle)
                 except Exception as e:
                     print(e)
@@ -277,6 +283,7 @@ class BLELasertagCentral:
             else:
                 print("Failed to find lasertag characteristic.")
                 try:
+                    time.sleep(0.05)
                     self._ble.gap_disconnect(self._conn_handle)
                 except Exception as e:
                     print(e)
@@ -297,9 +304,10 @@ class BLELasertagCentral:
             def failed_connection():
                 print("Failed to find lasertag descriptor.")
                 try:
+                    time.sleep(0.05)
                     self._ble.gap_disconnect(self._conn_handle)
-                except Exception as e:
-                    print(e)
+                except Exception as ex:
+                    print(ex)
                 if self._conn_failed_callback is not None:
                     self._conn_failed_callback()
                     self._conn_failed_callback = None
@@ -322,7 +330,7 @@ class BLELasertagCentral:
                         current_characteristic.cccd_handle = dsc_handle
                         # this was the last descriptor, reset for next in loop
                         current_characteristic = None
-                
+
                 for characteristic in self._characteristics.values():
                     if characteristic.def_handle is None or characteristic.value_handle is None or characteristic.cccd_handle is None:
                         failed_connection()
@@ -376,9 +384,6 @@ class BLELasertagCentral:
                             characteristic.notify_callback(characteristic.value)
                         break
 
-        elif event == _IRQ_MTU_EXCHANGED:
-            conn_handle, mtu = data
-            print("event _IRQ_MTU_EXCHANGED mtu", mtu)
 
     # Returns true if we've successfully connected and discovered characteristics and descriptors.
     def is_connected(self):
@@ -558,7 +563,7 @@ try:
                 time.sleep(0.5)
 
         elif current_state == BLE_INITIATE_DISCONNECT:
-            time.sleep(0.5) # at least 10 x connection_timeout (default connection_timeout is between 30000us and 50000us)
+            time.sleep(0.5)  # at least 10 x connection_timeout (default connection_timeout is between 30000us and 50000us)
             central.disconnect(on_final_disconnect)
             current_state = BLE_DISCONNECTING
 
