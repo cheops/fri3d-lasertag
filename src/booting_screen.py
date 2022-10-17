@@ -164,7 +164,7 @@ def boot_screen_countdown(countdown_seconds):
         time.sleep(1)
 
 
-async def monitor(set_new_event_fnc, initial_profile):
+async def monitor_booting(set_new_event_fnc, initial_profile):
     boot_screen_countdown(3)
     # quick check, if button is not pressed, move on
     if boot_button.value() == 1:

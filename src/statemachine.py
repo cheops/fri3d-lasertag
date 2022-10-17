@@ -16,9 +16,10 @@ class StateMachine:
     def add_transition(self, trigger, source, dest):
         self.transitions.append(Transition(trigger, source, dest))
 
-    def start(self):
+    # this is an async function that runs forever
+    async def start(self):
         while True:
-            new_event = self.model.run(self.state)
+            new_event = await self.model.run(self.state)
             print("model run finished, new_event", new_event)
             for t in self.transitions:
                 if t.trigger.name == new_event.name and t.source.name == self.state.name:
@@ -64,41 +65,54 @@ class Transition:
         return self.__class__.__name__ + ':' + self.trigger + '=' + self.source + '->' + self.destination
 
 
-# def test_it():
-#     BOOTING = State('booting')
-#     PRACTICING = State('practicing')
-#     HIDING = State('hiding')
-#     PLAYING = State('playing')
-#     FINISHING = State('finishing')
-#
-#     states_mvp = [BOOTING, PRACTICING, HIDING, PLAYING, FINISHING]
-#
-#     BOOT = Event('boot')
-#     CONFIRM_PROFILE = Event('confirm_profile')
-#     PRESTART = Event('prestart')
-#     START = Event('start')
-#     END = Event('end')
-#
-#     transitions_mvp = [
-#         Transition(CONFIRM_PROFILE, BOOTING, PRACTICING),
-#         Transition(PRESTART, PRACTICING, HIDING),
-#         Transition(START, HIDING, PLAYING),
-#         Transition(END, PLAYING, FINISHING),
-#         Transition(BOOT, FINISHING, BOOTING),
-#     ]
-#
-#     class Player:
-#         pass
-#
-#     player = Player()
-#
-#     statemachine_mvp = StateMachine(player, states_mvp, transitions_mvp, initial=BOOTING)
-#
-#     print(statemachine_mvp.state)
-#     statemachine_mvp.trigger(CONFIRM_PROFILE)
-#     print(statemachine_mvp.state)
-#
-#
-# #test_it()
-#
+if __name__ == "__main__":
+    def test_it():
+        import uasyncio
+
+        BOOTING = State('booting')
+        PRACTICING = State('practicing')
+        HIDING = State('hiding')
+        PLAYING = State('playing')
+        FINISHING = State('finishing')
+
+        states_mvp = [BOOTING, PRACTICING, HIDING, PLAYING, FINISHING]
+
+        BOOT = Event('boot')
+        CONFIRM_PROFILE = Event('confirm_profile')
+        PRESTART = Event('prestart')
+        START = Event('start')
+        END = Event('end')
+
+        transitions_mvp = [
+            Transition(CONFIRM_PROFILE, BOOTING, PRACTICING),
+            Transition(PRESTART, PRACTICING, HIDING),
+            Transition(START, HIDING, PLAYING),
+            Transition(END, PLAYING, FINISHING),
+            Transition(BOOT, FINISHING, BOOTING),
+        ]
+
+        class Player:
+            def __init__(self):
+                self.event = None
+
+            def set_event(self, event):
+                self.event = event
+
+            def run(self):
+
+                while self.event is None:
+                    uasyncio.sleep(1)
+                return self.event
+
+        player = Player()
+
+        statemachine_mvp = StateMachine(player, states_mvp, transitions_mvp, initial=BOOTING)
+
+        try:
+            uasyncio.run(statemachine_mvp.start())
+        finally:
+            uasyncio.new_event_loop()  # Clear retained state
+
+
+    test_it()
 

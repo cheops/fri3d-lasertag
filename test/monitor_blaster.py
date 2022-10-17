@@ -19,7 +19,7 @@ async def monitor_blaster():
             # incoming enemy fire
             print('got_hit', data_packet)
 
-uasyncio.run(monitor_blaster())
+#uasyncio.run(monitor_blaster())
 
 
 

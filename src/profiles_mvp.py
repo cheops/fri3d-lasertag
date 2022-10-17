@@ -9,7 +9,7 @@ from mvp import playing_time, hiding_time, hit_damage, hit_timeout, shot_ammo, p
 from display import Display, DisplayFlag, DisplayPlayer
 from effects import effect_R2D2, pixels_clear, effect_reload
 from teams import REX, GIGGLE, BUZZ, team_blaster
-from booting_screen import monitor as monitor_booting
+from booting_screen import monitor_booting
 from monitor_ir import monitor_blaster, clear_blaster_buffer, monitor_badge, clear_badge_buffer
 from monitor_countdown import monitor_countdown
 from message_parser import parse_flag_prestart_msg, parse_player_prestart_msg
@@ -41,9 +41,11 @@ class FlagAndPlayer(Profile):
         self._mqtt_during_playing = False
 
     def set_new_event(self, new_event):
-        self._new_event = new_event
+        if self._new_event is None:  # avoid overwriting of new_event, any next new_event is ignored
+            self._new_event = new_event
 
     def run(self, state):
+        # if run finishes, it should return a new_event
         print(state)
         if state == BOOTING:
             self._booting()
@@ -56,20 +58,24 @@ class FlagAndPlayer(Profile):
         elif state == FINISHING:
             self._finishing()
 
-        return uasyncio.run(self._forever())
+        #return uasyncio.run(self._forever())
+        # we should run forever non-blocking and return with a new_event
+        return await self._forever()
 
     async def _forever(self):
         while self._new_event is None:
             await uasyncio.sleep(0.5)
-        self.stop_current_tasks()
+        self.stop_current_state_tasks()
         new_event = self._new_event
         self.set_new_event(None)
         return new_event
 
-    def stop_current_tasks(self):
+    def stop_current_state_tasks(self):
+        for t in self._current_state_tasks:
+            t.cancel()
         while len(self._current_state_tasks):
             t = self._current_state_tasks.pop()
-            t.cancel()
+            await t
 
     def _booting(self):
         t_monitor = uasyncio.create_task(monitor_booting(self.set_new_event, self))
