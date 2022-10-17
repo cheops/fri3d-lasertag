@@ -10,26 +10,28 @@ def clear_blaster_buffer():
 
 
 async def monitor_blaster(my_team, got_hit_fnc, shot_fnc):
-    while True:
-        await uasyncio.sleep(0.5)
-        data_packet = blaster.blaster.get_blaster_shot()
+    try:
+        while True:
+            await uasyncio.sleep(0.5)
+            data_packet = blaster.blaster.get_blaster_shot()
 
-        if data_packet is not None \
-                and data_packet.command == Command.shoot \
-                and data_packet.trigger is False \
-                and data_packet.team != team_blaster[my_team]:
-            # incoming enemy fire
-            dead = got_hit_fnc()
-            if dead:
-                break
+            if data_packet is not None \
+                    and data_packet.command == Command.shoot \
+                    and data_packet.trigger is False \
+                    and data_packet.team != team_blaster[my_team]:
+                # incoming enemy fire
+                dead = got_hit_fnc()
+                if dead:
+                    break
 
-        if data_packet is not None \
-                and data_packet.command == Command.shoot \
-                and data_packet.trigger is True \
-                and data_packet.team == team_blaster[my_team]:
-            # we shoot
-            shot_fnc()
-
+            if data_packet is not None \
+                    and data_packet.command == Command.shoot \
+                    and data_packet.trigger is True \
+                    and data_packet.team == team_blaster[my_team]:
+                # we shoot
+                await shot_fnc()
+    except uasyncio.CancelledError:
+        pass
 
 def clear_badge_buffer():
     while get_badge_shot(-1) is not None:

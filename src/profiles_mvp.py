@@ -41,10 +41,10 @@ class FlagAndPlayer(Profile):
         self._mqtt_during_playing = False
 
     def set_new_event(self, new_event):
-        if self._new_event is None:  # avoid overwriting of new_event, any next new_event is ignored
+        if self._new_event is None or new_event is None:  # avoid overwriting of new_event, any next new_event is ignored, except for clearing
             self._new_event = new_event
 
-    def run(self, state):
+    async def run(self, state):
         # if run finishes, it should return a new_event
         print(state)
         if state == BOOTING:
@@ -65,12 +65,12 @@ class FlagAndPlayer(Profile):
     async def _forever(self):
         while self._new_event is None:
             await uasyncio.sleep(0.5)
-        self.stop_current_state_tasks()
+        await self.stop_current_state_tasks()
         new_event = self._new_event
         self.set_new_event(None)
         return new_event
 
-    def stop_current_state_tasks(self):
+    async def stop_current_state_tasks(self):
         for t in self._current_state_tasks:
             t.cancel()
         while len(self._current_state_tasks):
@@ -280,7 +280,7 @@ class Player(FlagAndPlayer):
             else:
                 return False
 
-        def _shot():
+        async def _shot():
             async def reload_display():
                 for ammo in range(0, 100):
                     self.ammo = ammo
@@ -296,7 +296,8 @@ class Player(FlagAndPlayer):
             if self.ammo <= 0:
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': True}), self._hit_timeout)
                 uasyncio.wait_for(effect_reload(), 11)
-                uasyncio.wait_for(reload_display(), 11)
+                t = uasyncio.create_task(reload_display())
+                await t
                 self.ammo = 100
                 self._my_display.draw_upper_right(self.ammo)
                 uasyncio.wait_for(to_blaster_with_retry(blaster.blaster.set_trigger_action, kwargs={'disable': False}), self._hit_timeout)
@@ -432,7 +433,7 @@ class Player(FlagAndPlayer):
         self._my_display.draw_middle(self._remaining_seconds)
 
         def button_press():
-            self.set_new_event(BOOT)
+            self.set_new_event(NEXT_ROUND)
 
         t_button = uasyncio.create_task(_monitor_button_press(button_press))
         self._current_state_tasks.append(t_button)
@@ -464,17 +465,19 @@ def to_blaster_with_retry(fnc, args=(), kwargs=None):
 
 
 async def _monitor_button_press(button_press_fnc):
-    last_value = boot_button.value()
-    while True:
-        await uasyncio.sleep(0.5)
-        new_value = boot_button.value()
-        if last_value != new_value:
-            last_value = new_value
-            if new_value == 0:
-                print("button pressed")
-                button_press_fnc()
-                break
-
+    try:
+        last_value = boot_button.value()
+        while True:
+            await uasyncio.sleep(0.5)
+            new_value = boot_button.value()
+            if last_value != new_value:
+                last_value = new_value
+                if new_value == 0:
+                    print("button pressed")
+                    button_press_fnc()
+                    break
+    except uasyncio.CancelledError:
+        pass
 
 player_rex_profile = Player(REX)
 player_giggle_profile = Player(GIGGLE)

@@ -579,7 +579,8 @@ async def ble_listener(listen_type, fnc_callback_ble_notify):
 
             elif current_state == BLE_END:
                 break
-
+    except uasyncio.CancelledError:
+        pass
     finally:
         if central.is_connected():
             central.disconnect(None)
