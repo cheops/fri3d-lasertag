@@ -499,10 +499,12 @@ async def ble_listener(listen_type, fnc_callback_ble_notify):
 
     def on_failed_connect():
         nonlocal current_state
+        time.sleep(0.5)  # at least 10 x connection_timeout (default connection_timeout is between 30000us and 50000us)
         current_state = BLE_START_SCANNING
 
     def on_disconnect():
         nonlocal current_state
+        time.sleep(0.5)  # at least 10 x connection_timeout (default connection_timeout is between 30000us and 50000us)
         print("disconnected, BLE_START_SCANNING")
         current_state = BLE_START_SCANNING
 
@@ -585,5 +587,6 @@ async def ble_listener(listen_type, fnc_callback_ble_notify):
         if central.is_connected():
             central.disconnect(None)
             print("BLE Disconnected")
+            time.sleep(0.5)  # at least 10 x connection_timeout (default connection_timeout is between 30000us and 50000us)
             gc.collect()
 
