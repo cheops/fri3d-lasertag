@@ -1,4 +1,5 @@
 import uasyncio
+import micropython
 
 from mvp import states_mvp, transitions_mvp, BOOTING
 from profiles_mvp import player_buzz_profile
@@ -23,6 +24,10 @@ effect_clean()
 # Writing fast and efficient MicroPython
 # https://www.youtube.com/watch?v=hHec4qL00x0
 
+# https://docs.micropython.org/en/latest/reference/isr_rules.html#the-emergency-exception-buffer
+micropython.alloc_emergency_exception_buf(100)
+
+
 def set_global_exception():
     def handle_exception(loop, context):
         import sys
@@ -34,12 +39,14 @@ def set_global_exception():
 
 async def main():
     set_global_exception()  # Debug aid
+    print("event loop started, starting statemachine")
     mvp_statemachine = StateMachine(player_buzz_profile,
                                     states_mvp,
                                     transitions_mvp,
                                     BOOTING)
 
     await mvp_statemachine.start()  # Non-terminating method
+    print("event loop finished, this should not happen")
 
 
 # here the code starts running

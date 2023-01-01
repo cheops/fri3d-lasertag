@@ -11,10 +11,10 @@
 #define NEXT_ROUND_TYPE 1
 
 #define HIDING_TIME 120
-#define PLAYING_TIME 30
+#define PLAYING_TIME 300
 #define HIT_DAMAGE 5
 #define HIT_TIMEOUT 3
-#define SHOT_AMMO 0
+#define SHOT_AMMO 1
 #define PRACTICING_CHANNEL 2
 #define PLAYING_CHANNEL 3
 #define GAME_ID 1234

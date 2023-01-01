@@ -1,4 +1,5 @@
-from machine import SoftI2C, Pin, SPI, TouchPad
+from machine import Pin, SPI, TouchPad
+#from machine import SoftI2C, 
 #from lis2hh12 import LIS2HH12, SF_G
 from neopixel import NeoPixel
 import gc

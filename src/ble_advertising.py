@@ -18,10 +18,11 @@ _ADV_TYPE_UUID16_MORE = const(0x2)
 _ADV_TYPE_UUID32_MORE = const(0x4)
 _ADV_TYPE_UUID128_MORE = const(0x6)
 _ADV_TYPE_APPEARANCE = const(0x19)
+_ADV_TYPE_MANUFACTURER_SPECIFIC_DATA = const(0xff)
 
 
 # Generate a payload to be passed to gap_advertise(adv_data=...).
-def advertising_payload(limited_disc=False, br_edr=False, name=None, services=None, appearance=0):
+def advertising_payload(limited_disc=False, br_edr=False, name=None, services=None, appearance=None, company_id=None, manufacturer_specific_data=None):
     payload = bytearray()
 
     def _append(adv_type, value):
@@ -43,8 +44,12 @@ def advertising_payload(limited_disc=False, br_edr=False, name=None, services=No
             elif len(b) == 16:
                 _append(_ADV_TYPE_UUID128_COMPLETE, b)
 
-    # See org.bluetooth.characteristic.gap.appearance.xml
-    _append(_ADV_TYPE_APPEARANCE, struct.pack('<h', appearance))
+    if company_id and manufacturer_specific_data:
+        _append(_ADV_TYPE_MANUFACTURER_SPECIFIC_DATA, company_id+manufacturer_specific_data)
+
+    if appearance:
+        # See org.bluetooth.characteristic.gap.appearance.xml
+        _append(_ADV_TYPE_APPEARANCE, struct.pack('<h', appearance))
 
     return payload
 
@@ -75,11 +80,24 @@ def decode_services(payload):
     return services
 
 
+def decode_man_spec_data(payload):
+    n = decode_field(payload, _ADV_TYPE_MANUFACTURER_SPECIFIC_DATA)
+    if len(n) > 0 and len(n[0]) > 2:
+        return n[0][:2], n[0][2:]  # company_id, manufacturer_specific_data
+    else:
+        return b'', b''
+
+
 def demo():
     payload = advertising_payload(name='micropython', services=[bluetooth.UUID(0x181A), bluetooth.UUID('6E400001-B5A3-F393-E0A9-E50E24DCCA9E')])
     print(payload)
     print(decode_name(payload))
     print(decode_services(payload))
+
+    payload_2 = advertising_payload(company_id=0xfff, manufacturer_specific_data=0xdeadbeef)
+    print(payload_2)
+    print(decode_man_spec_data(payload_2))
+
 
 # if __name__ == '__main__':
 #     demo()
