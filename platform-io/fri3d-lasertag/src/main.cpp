@@ -16,10 +16,11 @@ int64_t lastMicrosCountdown = startCountdownMicros;
 const uint32_t countdownInterval = 1000000; // 1 second
 uint16_t playing_time = PLAYING_TIME;
 
-int64_t startBadgeSendMicros = esp_timer_get_time();
-int64_t lastMicrosBadgeSend = startBadgeSendMicros;
-const uint32_t badgeSendInterval = 5000000; // 5 seconds
+int64_t startBlasterSendMicros = esp_timer_get_time();
+int64_t lastMicrosBlasterSend = startBlasterSendMicros;
+const uint32_t blasterSendInterval = 5000000; // 5 seconds
 uint8_t team = eNoTeam;
+uint8_t brightness = 0;
 
 void setup(void)
 {
@@ -59,20 +60,24 @@ void loop()
         display.draw_middle(playing_time);
     }
 
-    // set the IR channel
-    startBadgeSendMicros = esp_timer_get_time();
-    if (startBadgeSendMicros - lastMicrosBadgeSend >= badgeSendInterval)
+
+    // update blaster settings
+    startBlasterSendMicros = esp_timer_get_time();
+    if (startBlasterSendMicros - lastMicrosBlasterSend >= blasterSendInterval)
     {
-        lastMicrosBadgeSend = startBadgeSendMicros;
+        lastMicrosBlasterSend = startBlasterSendMicros;
 
         bool success = blasterLink.set_channel(2);
         Serial.printf("Set channel: %x\n", success);
 
+        success = blasterLink.set_settings(true, brightness);
+        Serial.printf("Set settings: %x\n", success);
+        brightness += 1;
+        if (brightness >= 8) brightness = 0;
+
         success = blasterLink.set_team(TeamColor(team));
         Serial.printf("Set team: %x\n", success);
         team += 1;
-        if (team >= 16) {
-            team = 0;
-        }
+        if (team >= 16) team = 0;
     }
 }

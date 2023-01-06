@@ -490,6 +490,26 @@ public:
         return success;
     }
 
+    /**
+     * @brief Set settings: mute and brightness
+     * 
+     * @param mute When set the blaster will be in mute mode
+     * @param brightness Brightness (default = 7 (0b111)) This will change the brightness of all LEDS on the blaster.
+     * @return true acknowledged by blaster
+     * @return false not acknowledged by blaster
+     */
+    bool set_settings(bool mute = false, uint8_t brightness = 7) {
+        if (brightness > 7) brightness = 7;
+        DataPacket p = DataPacket();
+        p.set_command(eCommandSetSettings);
+        uint8_t parameter = (brightness << 1) | mute;
+        p.set_parameter(parameter);
+        p.calculate_crc(true);
+
+        bool success = send_to_blaster_retry(p);
+        return success;        
+    }
+
 private:
 
     static const uint16_t JVC_TIMESLOT_MICROS = 526; // timings JVC remote: 1 timeslot is 1 / 38kHz * 20 = 526us
