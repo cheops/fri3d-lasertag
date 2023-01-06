@@ -354,8 +354,6 @@ public:
             return false;
 
         DataPacket p = DataPacket();
-        p.set_team(eNoTeam);
-        p.set_trigger(false);
         p.set_command(eCommandSetChannel);
         p.set_parameter(channel_id);
         p.calculate_crc(true);
@@ -383,6 +381,7 @@ public:
         if (single_shot) parameter += 4;
         if (stealth) parameter += 8;
         p.set_parameter(parameter);
+        p.calculate_crc(true);
 
         bool success = send_to_blaster_retry(p.get_raw());
         return success;
@@ -402,6 +401,8 @@ public:
         DataPacket p = DataPacket();
         p.set_command(eCommandTeamChange);
         p.set_team(team);
+        p.calculate_crc(true);
+
         bool success = send_to_blaster_retry(p.get_raw());
         return success;
     }
@@ -427,6 +428,8 @@ public:
         // TODO: check if team is changed to 0 on blaster when not set in this packet
         DataPacket p = DataPacket();
         p.set_command(eCommandSetGameMode);
+        p.calculate_crc(true);
+        
         bool success = send_to_blaster_retry(p.get_raw());
         return success;
     }
@@ -441,6 +444,8 @@ public:
     bool play_animation(AnimationNames animation) {
         DataPacket p = DataPacket();
         p.set_command(eCommandPlayAnimation);
+        p.calculate_crc(true);
+
         bool success = send_to_blaster_retry(p.get_raw());
         return success;
     }
@@ -457,6 +462,8 @@ public:
         DataPacket p = DataPacket();
         p.set_command(eCommandSetHitTimeout);
         p.set_parameter(timeout);
+        p.calculate_crc(true);
+
         bool success = send_to_blaster_retry(p.get_raw());
         return success;
     }
@@ -477,6 +484,8 @@ public:
         DataPacket p = DataPacket();
         p.set_command(eCommandChatter);
         p.set_parameter(9);
+        p.calculate_crc(true);
+
         bool success = send_to_blaster_retry(p.get_raw());
         return success;
     }
@@ -582,21 +591,20 @@ private:
         }
 
         // check for ACK within 100ms
-        // const uint16_t BLASTER_ACK = 0xF0;
         // clear the br ack_state
         br.m_ack_state = false;
-
-        // clean up the esp32 rmt
-        rmtDeinit(rmt_send);
 
         // listen on the blaster link again
         link_state = eLinkStateWaitForAck;
         start_listen();
 
+        // clean up the esp32 rmt
+        rmtDeinit(rmt_send);
+
         // wait at least 100ms for Ack
         vTaskDelay(135 / portTICK_PERIOD_MS);
         br.process_buffer();
-        if (br.m_ack_state != true)
+        if (br.m_ack_state == false)
         {
             Serial.println("send_to_blaster :: no Ack received.");
             link_state = eLinkStateIdle;
@@ -609,6 +617,7 @@ private:
                 Serial.println("send_to_blaster :: no Ack Ready received.");
                 link_state = eLinkStateIdle;
             }
+            // packet was Acked, but blaster did not send Ack Ready
             return true;
         }
     }

@@ -63,7 +63,7 @@ enum AnimationNames: uint8_t {
 enum ParameterNames: uint8_t {
   eParameterNone = 0,
   eParameterBlasterNotReady = 0,
-  eParameterBlasterReady = 15,
+  eParameterBlasterReady = 1,
   eParameterTeamChangeHardware = 0,
   eParameterTeamChangeZombie = 1
 };
