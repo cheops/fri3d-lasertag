@@ -66,5 +66,8 @@ void loop()
 
         bool success = blasterLink.set_channel(2);
         Serial.printf("Set channel: %x\n", success);
+
+        success = blasterLink.set_team(eTeamWhite);
+        Serial.printf("Set team: %x\n", success);
     }
 }
