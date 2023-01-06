@@ -21,6 +21,7 @@ int64_t lastMicrosBlasterSend = startBlasterSendMicros;
 const uint32_t blasterSendInterval = 5000000; // 5 seconds
 uint8_t team = eNoTeam;
 uint8_t brightness = 0;
+bool blaster_set_settings_supported = true;
 
 void setup(void)
 {
@@ -70,10 +71,13 @@ void loop()
         bool success = blasterLink.set_channel(2);
         Serial.printf("Set channel: %x\n", success);
 
-        success = blasterLink.set_settings(true, brightness);
-        Serial.printf("Set settings: %x\n", success);
-        brightness += 1;
-        if (brightness >= 8) brightness = 0;
+        if (blaster_set_settings_supported) { // only try set_settings once, needs blaster firmware update
+            success = blasterLink.set_settings(true, brightness);
+            Serial.printf("Set settings: %x\n", success);
+            brightness += 1;
+            if (brightness >= 8) brightness = 0;
+            if (!success) blaster_set_settings_supported = false;
+        }
 
         success = blasterLink.set_team(TeamColor(team));
         Serial.printf("Set team: %x\n", success);
