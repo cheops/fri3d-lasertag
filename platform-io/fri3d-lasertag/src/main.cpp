@@ -18,7 +18,8 @@ uint16_t playing_time = PLAYING_TIME;
 
 int64_t startBadgeSendMicros = esp_timer_get_time();
 int64_t lastMicrosBadgeSend = startBadgeSendMicros;
-const uint32_t badgeSendInterval = 10000000; // 10 seconds
+const uint32_t badgeSendInterval = 5000000; // 5 seconds
+uint8_t team = eNoTeam;
 
 void setup(void)
 {
@@ -67,7 +68,11 @@ void loop()
         bool success = blasterLink.set_channel(2);
         Serial.printf("Set channel: %x\n", success);
 
-        success = blasterLink.set_team(eTeamWhite);
+        success = blasterLink.set_team(TeamColor(team));
         Serial.printf("Set team: %x\n", success);
+        team += 1;
+        if (team >= 16) {
+            team = 0;
+        }
     }
 }
