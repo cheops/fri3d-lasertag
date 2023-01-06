@@ -358,7 +358,7 @@ public:
         p.set_parameter(channel_id);
         p.calculate_crc(true);
 
-        bool success = send_to_blaster_retry(p.get_raw());
+        bool success = send_to_blaster_retry(p);
         return success;
     }
 
@@ -383,7 +383,7 @@ public:
         p.set_parameter(parameter);
         p.calculate_crc(true);
 
-        bool success = send_to_blaster_retry(p.get_raw());
+        bool success = send_to_blaster_retry(p);
         return success;
     }
 
@@ -403,7 +403,7 @@ public:
         p.set_team(team);
         p.calculate_crc(true);
 
-        bool success = send_to_blaster_retry(p.get_raw());
+        bool success = send_to_blaster_retry(p);
         return success;
     }
 
@@ -430,7 +430,7 @@ public:
         p.set_command(eCommandSetGameMode);
         p.calculate_crc(true);
         
-        bool success = send_to_blaster_retry(p.get_raw());
+        bool success = send_to_blaster_retry(p);
         return success;
     }
 
@@ -446,7 +446,7 @@ public:
         p.set_command(eCommandPlayAnimation);
         p.calculate_crc(true);
 
-        bool success = send_to_blaster_retry(p.get_raw());
+        bool success = send_to_blaster_retry(p);
         return success;
     }
 
@@ -464,7 +464,7 @@ public:
         p.set_parameter(timeout);
         p.calculate_crc(true);
 
-        bool success = send_to_blaster_retry(p.get_raw());
+        bool success = send_to_blaster_retry(p);
         return success;
     }
 
@@ -486,7 +486,7 @@ public:
         p.set_parameter(9);
         p.calculate_crc(true);
 
-        bool success = send_to_blaster_retry(p.get_raw());
+        bool success = send_to_blaster_retry(p);
         return success;
     }
 
@@ -502,7 +502,7 @@ private:
     static const uint16_t ir_stop_high_time = JVC_TIMESLOT_MICROS * 1;
     static const uint16_t ir_stop_low_time = JVC_TIMESLOT_MICROS * 1;
 
-    static bool send_to_blaster(uint16_t raw_data)
+    static bool send_to_blaster(DataPacket packet)
     {
         uint8_t waitCount = 0;
         while (link_state != eLinkStateIdle)
@@ -558,7 +558,7 @@ private:
 
         for (uint8_t i = 0; i < 16; i++)
         {
-            if (bitRead(raw_data, i))
+            if (bitRead(packet.get_raw(), i))
             {
                 ir_data[1 + i].duration0 = ir_one_high_time;
                 ir_data[1 + i].level0 = 1;
@@ -579,7 +579,8 @@ private:
         ir_data[17].level1 = 0;
 
         // send the prepared data
-        Serial.printf("send_to_blaster :: Sending data: %X\n", raw_data);
+        Serial.print("send_to_blaster :: Sending data: ");
+        packet.print(&Serial);
         bool success = rmtWriteBlocking(rmt_send, ir_data, NR_OF_ALL_BITS);
         if (!success)
         {
@@ -622,12 +623,12 @@ private:
         }
     }
 
-    static bool send_to_blaster_retry(uint16_t raw_data, uint8_t retries = 3)
+    static bool send_to_blaster_retry(DataPacket packet, uint8_t retries = 3)
     {
         uint8_t retryCount = 0;
         while (retryCount < retries)
         {
-            bool success = send_to_blaster(raw_data);
+            bool success = send_to_blaster(packet);
             if (!success)
             {
                 retryCount += 1;

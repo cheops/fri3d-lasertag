@@ -69,8 +69,8 @@ enum ParameterNames: uint8_t {
 };
 
 struct TimedRawData {
-    int64_t time_micros;
-    uint16_t raw_data;
+    int64_t time_micros = -1;
+    uint16_t raw_data = 0;
 };
 
 class DataPacket
@@ -212,7 +212,7 @@ public:
   }
 
 private:
-  TimedRawData m_t;
+  TimedRawData m_t = TimedRawData();
 };
 
 
