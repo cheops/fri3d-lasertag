@@ -61,6 +61,7 @@ enum AnimationNames: uint8_t {
 };
 
 enum ParameterNames: uint8_t {
+  eParameterNone = 0,
   eParameterBlasterNotReady = 0,
   eParameterBlasterReady = 15,
   eParameterTeamChangeHardware = 0,
@@ -215,6 +216,8 @@ private:
 };
 
 
+// DataPacketRingBuffer and TimedRawDataRingBuffer are very similar
+// C++ templates would resolve this, but a bit heavy for embedded
 class DataPacketRingBuffer {
 public:
     void add_message(DataPacket message) {

@@ -9,6 +9,8 @@
 // arduino reference https://www.arduino.cc/reference/en/
 // TimeBlaster https://github.com/area3001/Timeblaster
 
+// to read https://microcontrollerslab.com/category/freertos-arduino-tutorial/
+
 int64_t startCountdownMicros = esp_timer_get_time();
 int64_t lastMicrosCountdown = startCountdownMicros;
 const uint32_t countdownInterval = 1000000; // 1 second

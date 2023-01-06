@@ -364,6 +364,123 @@ public:
         return success;
     }
 
+    /**
+     * @brief Sets various trigger action flags
+     * 
+     * @param stealth silent shooting
+     * @param single_shot only 1 shot allowed
+     * @param healing true: healing shot, false damage shot
+     * @param disable true: no shooting allowed, false shooting allowed (damage or healing)
+     * @return true acknowledged by blaster
+     * @return false not acknowledged by blaster
+     */
+    static bool set_trigger_action(bool stealth=false, bool single_shot=false, bool healing=false, bool disable=false) {
+        DataPacket p = DataPacket();
+        p.set_command(eCommandSetTriggerAction);
+        uint8_t parameter = 0;
+        if (disable) parameter += 1;
+        if (healing) parameter += 2;
+        if (single_shot) parameter += 4;
+        if (stealth) parameter += 8;
+        p.set_parameter(parameter);
+
+        bool success = send_to_blaster_retry(p.get_raw());
+        return success;
+    }
+
+    /**
+     * @brief Sets and locks the blaster team
+     * 
+     * @param team 0 (eNoTeam): release team lock
+     *             1..15: lock blaster team. When this is set the blaster team will be locked to this team.
+     *                    This means that the hardware team switch is not working anymore.
+     *                    The blaster team can still change when playing in zombi mode.
+     * @return true acknowledged by blaster
+     * @return false not acknowledged by blaster
+     */
+    static bool set_team(TeamColor team) {
+        DataPacket p = DataPacket();
+        p.set_command(eCommandTeamChange);
+        p.set_team(team);
+        bool success = send_to_blaster_retry(p.get_raw());
+        return success;
+    }
+
+    /**
+     * @brief Set the game mode
+     *        Mode 0: Timeout mode. (Default)
+     *                When this mode is set the blaster will go in timeout mode when being shot.
+     *                After a set time the blaster will auto heal and can continue the game.
+     *                If the blaster receives a healing shot this timeout can be shortened.
+     *        Mode 1: Zombie mode
+     *                In this mode the blaster team will change to the color of the team that shot it.
+     *                The game is over when all players are of the same color.
+     *        Mode 2: Sudden death mode
+     *                The blaster is very weak and will stop working after being shot once.
+     *                The winner is the last player with a working blaster
+     * 
+     * @param mode the GameMode
+     * @return true acknowledged by blaster
+     * @return false not acknowledged by blaster
+     */
+    bool set_game_mode(GameMode mode) {
+        // TODO: check if team is changed to 0 on blaster when not set in this packet
+        DataPacket p = DataPacket();
+        p.set_command(eCommandSetGameMode);
+        bool success = send_to_blaster_retry(p.get_raw());
+        return success;
+    }
+
+    /**
+     * @brief play an animation on the blaster
+     * 
+     * @param animation the animation to play
+     * @return true acknowledged by blaster
+     * @return false not acknowledged by blaster
+     */
+    bool play_animation(AnimationNames animation) {
+        DataPacket p = DataPacket();
+        p.set_command(eCommandPlayAnimation);
+        bool success = send_to_blaster_retry(p.get_raw());
+        return success;
+    }
+
+    /**
+     * @brief Set the hit timeout: the timeout in seconds the blaster is not able to shoot or get shot
+     * 
+     * @param timeout in seconds
+     * @return true acknowledged by blaster
+     * @return false not acknowledged by blaster
+     */
+    bool set_hit_timeout(uint8_t timeout) {
+        if (timeout > 15) return false;
+        DataPacket p = DataPacket();
+        p.set_command(eCommandSetHitTimeout);
+        p.set_parameter(timeout);
+        bool success = send_to_blaster_retry(p.get_raw());
+        return success;
+    }
+
+    /**
+     * @brief This is a gimmick and not a game mechanic
+     *        When the badge sends this message to the blaster it initiates a blaster chatter session.
+     *        The blaster that receives this message will start "talking" blaster language then transmit the chatter message over IR.
+     *        Blasters who receive this message will also start "talking" and retransmitting.
+     * 
+     *        Every time a blaster retransmits a message is decreases the time to live field. When the TTL == 0 it will stop.
+     *        A blaster will also ignore any packages with a higher TTL than the lowest TTL it has received until now.
+     * 
+     * @return true acknowledged by blaster
+     * @return false not acknowledged by blaster
+     */
+    bool start_shatter() {
+        DataPacket p = DataPacket();
+        p.set_command(eCommandChatter);
+        p.set_parameter(9);
+        bool success = send_to_blaster_retry(p.get_raw());
+        return success;
+    }
+
 private:
 
     static const uint16_t JVC_TIMESLOT_MICROS = 526; // timings JVC remote: 1 timeslot is 1 / 38kHz * 20 = 526us
