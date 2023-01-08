@@ -3,6 +3,8 @@
 #include "mvp.hpp"
 #include "blaster_link.hpp"
 #include "ir_receive.hpp"
+#include "ble_client.hpp"
+
 
 // multi core documentation https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/freertos-smp.html
 // arduino esp32 documentation https://espressif-docs.readthedocs-hosted.com/projects/arduino-esp32/en/latest/
@@ -36,6 +38,9 @@ void setup(void)
     blasterLink.start_listen();
 
     badgeIrReceiver.setup();
+
+    bleClient.start_listen(eBleMessageTypePrestart);
+    
 }
 
 void loop()
@@ -43,6 +48,11 @@ void loop()
 
     blasterLink.process_buffer();
     badgeIrReceiver.receive_ir_data();
+
+    if (bleClient.listen_type_found()) {
+        bleClient.get_ble_message().print(&Serial);
+        bleClient.reset();
+    }
 
     startCountdownMicros = esp_timer_get_time();
     if (startCountdownMicros - lastMicrosCountdown >= countdownInterval)
