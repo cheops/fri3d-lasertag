@@ -18,8 +18,11 @@ uint16_t ConvertRGB(const uint8_t &R, const uint8_t &G, const uint8_t &B)
 class Display
 {
 public:
-  Display(const Team &team): m_color(team.color()), m_team_name(team.name())
-  {}
+  Display() {}
+  Display(const Team &team) {
+    m_color = team.color();
+    m_team_name = team.name();
+  }
   
   void init()
   {
@@ -60,10 +63,10 @@ public:
   }
 
 protected:
-  const uint8_t m_width = 8;
-  const uint16_t m_bg_color = ST77XX_WHITE;
-  const uint16_t m_color;
-  const std::string m_team_name;
+  static const uint8_t m_width = 8;
+  static const uint16_t m_bg_color = ST77XX_WHITE;
+  uint16_t m_color;
+  std::string m_team_name;
 
   void draw_borders()
   {
@@ -93,7 +96,7 @@ protected:
     tft.print("Health%");
   }
 
-  virtual void draw_static_upper_right() = 0;
+  void draw_static_upper_right();
 
   void draw_static_bottom()
   {
@@ -106,9 +109,8 @@ protected:
 class DisplayPlayer: public Display
 {
 public:
-  DisplayPlayer(const Team &team) : Display(team)
-  {
-  }
+  DisplayPlayer() : Display() {}
+  DisplayPlayer(const Team &team) : Display(team) {}
 
   void init()
   {
@@ -149,9 +151,8 @@ protected:
 class DisplayFlag: public Display
 {
 public:
-  DisplayFlag(const Team &team) : Display(team)
-  {
-  }
+  DisplayFlag() : Display() {}
+  DisplayFlag(const Team &team) : Display(team) {}
 
   void init()
   {

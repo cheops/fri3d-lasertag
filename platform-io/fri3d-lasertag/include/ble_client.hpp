@@ -43,9 +43,9 @@ class BleMessage {
 public:
     BleMessage() {}
     BleMessage(std::string man_spec_data) {
-        if (man_spec_data.size() != 13) Serial.printf("wrong length of man_spec_data: '%s'\n", man_spec_data);
+        if (man_spec_data.size() != 14) Serial.printf("wrong length of man_spec_data: '%d'\n", man_spec_data.size());
 
-        m_man_spec_data = man_spec_data.substr(0,13);
+        m_man_spec_data = man_spec_data.substr(0,14);
     }
 
     static BleMessageType get_message_type(std::string man_spec_data) {
@@ -107,18 +107,18 @@ public:
         aSerial->print(get_playing_channel());
         aSerial->print(", hit_damage:");
         aSerial->print(get_hit_damaage());
-        aSerial->print(", hit_timeout");
+        aSerial->print(", hit_timeout:");
         aSerial->print(get_hit_timeout());
-        aSerial->print(", shot_ammo");
+        aSerial->print(", shot_ammo:");
         aSerial->print(get_shot_ammo());
-        aSerial->print(", practicing_channel");
+        aSerial->print(", practicing_channel:");
         aSerial->print(get_practicing_channel());
-        aSerial->print(", playing_channel");
+        aSerial->print(", playing_channel:");
         aSerial->print(get_playing_channel());
-        aSerial->print(", game_id");
+        aSerial->print(", game_id:");
         aSerial->print(get_game_id());
-        aSerial->print(", mqtt_during_playing");
-        aSerial->print(get_mqtt_during_playing());
+        aSerial->print(", mqtt_during_playing:");
+        aSerial->print(get_mqtt_during_playing()?"true":"false");
         aSerial->println();
     }
 
@@ -126,17 +126,22 @@ private:
     std::string m_man_spec_data;
 };
 
+static portMUX_TYPE bleClient_listening_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE bleClient_message_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 void scanCompleteCB(BLEScanResults scanResults);
 
 class BleClient: public BLEAdvertisedDeviceCallbacks {
 public:
-    BleClient(){}
+    BleClient() {}
     
     void start_scan() {
         bool success = m_pBLEScan->start(scanTime, scanCompleteCB, false);
         if (!success) Serial.println("Failed BLEScan->start()");
+
+        taskENTER_CRITICAL(&bleClient_listening_spinlock);
         m_listening = true;
+        taskEXIT_CRITICAL(&bleClient_listening_spinlock);
     }
 
     void start_listen(BleMessageType listenType) {
@@ -151,17 +156,35 @@ public:
         start_scan();
     }
 
+    bool is_listening() {
+
+        taskENTER_CRITICAL(&bleClient_listening_spinlock);
+        bool is_listening = m_listening;
+        taskEXIT_CRITICAL(&bleClient_listening_spinlock);
+        
+        return is_listening;
+    }
+
     bool listen_type_found() {
-        return !m_listening && m_bleMessage.get_message_type() == m_listen_type;
+        taskENTER_CRITICAL(&bleClient_message_spinlock);
+        BleMessageType m_type = m_bleMessage.get_message_type();
+        taskEXIT_CRITICAL(&bleClient_message_spinlock);
+
+        return !is_listening() && m_type == m_listen_type && m_listen_type != eBleMessageTypeNone;
     }
 
     BleMessage get_ble_message() {
-        return m_bleMessage;
+        taskENTER_CRITICAL(&bleClient_message_spinlock);
+        BleMessage message = m_bleMessage;
+        taskEXIT_CRITICAL(&bleClient_message_spinlock);
+        return message;
     }
 
     void reset() {
         m_listen_type = eBleMessageTypeNone;
+        taskENTER_CRITICAL(&bleClient_message_spinlock);
         m_bleMessage = BleMessage();
+        taskEXIT_CRITICAL(&bleClient_message_spinlock);
     }
 
 private:
@@ -174,45 +197,35 @@ private:
     void stop_listen() {
         m_pBLEScan->clearResults();   // delete results fromBLEScan buffer to release memory
         m_pBLEScan->stop();
-        BLEDevice::deinit();
+
+        taskENTER_CRITICAL(&bleClient_listening_spinlock);
         m_listening = false;
+        taskEXIT_CRITICAL(&bleClient_listening_spinlock);
     }
 
     // BLEAdvertisedDeviceCallbacks::onResult
     void onResult(BLEAdvertisedDevice advertisedDevice) {
-        Serial.printf("Advertised Device: %s \n", advertisedDevice.toString().c_str());
-        esp_ble_addr_type_t addr_type = advertisedDevice.getAddressType();
-        Serial.print("addr_type:");
-        Serial.println(addr_type);
-
-        BLEAddress addr = advertisedDevice.getAddress();
-        Serial.print("addr:");
-        Serial.println(addr.toString().c_str());
+        uint8_t ourMac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE};
+        BLEAddress ourBleAddress = BLEAddress(ourMac);
+        const char ourCompanyId[] = {0xFF, 0xFF};
 
         std::string man_data = advertisedDevice.getManufacturerData();
-        Serial.print("man_data:");
-        Serial.println(man_data.c_str());
-
         std::string man_id = man_data.substr(0,2);
-        Serial.print("man_id:");
-        Serial.println(man_id.c_str());
-
         std::string man_spec_data = man_data.substr(2);
-        Serial.print("man_spec_data:");
-        Serial.println(man_spec_data.c_str());
-
         BleMessageType message_type = BleMessage::get_message_type(man_spec_data);
-        Serial.print("message_type:");
-        Serial.println(message_type);
+        
+        if (BLE_ADDR_TYPE_RANDOM == advertisedDevice.getAddressType() && 
+            advertisedDevice.getAddress().equals(ourBleAddress) &&
+            strcmp(ourCompanyId, man_id.c_str()) &&
+            message_type == m_listen_type) {
+            
+            taskENTER_CRITICAL(&bleClient_message_spinlock);
+            m_bleMessage = BleMessage(man_spec_data);
+            taskEXIT_CRITICAL(&bleClient_message_spinlock);
 
-        //m_bleMessage = BleMessage(man_spec_data);
-
-        //stop_listen();
-
+            stop_listen();
+        }
     }
-
-
-
 };
 
 BleClient bleClient = BleClient();

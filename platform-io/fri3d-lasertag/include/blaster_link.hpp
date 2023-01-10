@@ -8,6 +8,9 @@
 // #define IR_RECEIVE_PIN 25  // IR receiver IO 25
 #define BLASTER_LINK_PIN 4 // Blaster link IO 04
 
+// define this to record the received bit timings
+//#define BLASTER_LINK_DEBUG_TIMINGS
+
 enum LinkState : uint8_t
 {
     eLinkStateIdle = 0,
@@ -16,8 +19,6 @@ enum LinkState : uint8_t
     eLinkStateWaitForAck = 3,
     eLinkStateWaitForAckReady = 4
 };
-
-volatile LinkState link_state = eLinkStateIdle;
 
 enum ReaderState : uint8_t
 {
@@ -37,10 +38,27 @@ enum ReaderDecode : char
     eReaderDecodeUnknown = 'U'
 };
 
-static portMUX_TYPE my_spinlock = portMUX_INITIALIZER_UNLOCKED;
+//spinlock to protect critical sections
+static portMUX_TYPE blaster_reader_raw_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE blaster_reader_buffer_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE blaster_reader_messages_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE link_state_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-class BlasterReader
-{
+volatile LinkState link_state = eLinkStateIdle;
+
+/**
+ * @brief Read bits from the blaster_link and transform them into a DataPacket
+ * 
+ *  interrupt driven on RISING edge, will put bits into m_raw_data and count in m_bits_read
+ *  when a packet is complete it timestamped and moved to m_buffer (still in the interrupt)
+ * 
+ *  outside interrupt process_buffer() should be called to transform the timestamped packets into DataPackets and move them to m_messages
+ *  from m_messages the DataPackets can then be fetched.
+ *  Some shortcuts are available for received Ack and Ack Ready messages when sending by checking link_state
+ * 
+ * 
+ */
+class BlasterReader {
 public:
     BlasterReader() {}
 
@@ -48,13 +66,16 @@ public:
 
     void reset()
     {
+        
         m_state = eReaderStateWaitForStart;
 
         m_raw_data = 0;
         m_bits_read = 0;
 
+#ifdef BLASTER_LINK_DEBUG_TIMINGS
         m_decoded_writer = 0;
         m_delta_writer = 0;
+#endif
     }
 
     void move_to_buffer()
@@ -75,22 +96,34 @@ public:
      */
     void process_buffer()
     {
-        while (m_buffer.message_available())
+        taskENTER_CRITICAL(&blaster_reader_buffer_spinlock);
+        bool message_available = m_buffer.message_available();
+        taskEXIT_CRITICAL(&blaster_reader_buffer_spinlock);
+        
+        while (message_available)
         {
+            taskENTER_CRITICAL(&blaster_reader_buffer_spinlock);
             DataPacket packet = DataPacket(m_buffer.pop_message());
-            Serial.print("BLASTER_LINK: ");
-            packet.print(&Serial);
+            taskEXIT_CRITICAL(&blaster_reader_buffer_spinlock);
+        
+            //Serial.print("BLASTER_LINK: ");
+            //packet.print(&Serial);
             if (packet.calculate_crc() == packet.get_crc())
             {
                 if (packet.get_command() == eCommandBlasterAck && packet.get_parameter() == eParameterBlasterNotReady)
                 {
                     m_ack_state = true;
+                    taskENTER_CRITICAL(&link_state_spinlock);
                     link_state = eLinkStateWaitForAckReady;
+                    taskEXIT_CRITICAL(&link_state_spinlock);
+
                 }
                 else if (packet.get_command() == eCommandBlasterAck && packet.get_parameter() == eParameterBlasterReady)
                 {
                     m_ack_state = true;
+                    taskENTER_CRITICAL(&link_state_spinlock);
                     link_state = eLinkStateIdle;
+                    taskEXIT_CRITICAL(&link_state_spinlock);
                 }
                 else if (packet.get_command() == eCommandTeamChange && packet.get_parameter() == eParameterTeamChangeHardware)
                 {
@@ -98,7 +131,9 @@ public:
                 }
                 else
                 {
+                    taskENTER_CRITICAL(&blaster_reader_messages_spinlock);
                     m_messages.add_message(packet);
+                    taskEXIT_CRITICAL(&blaster_reader_messages_spinlock);
                 }
             }
             else
@@ -106,9 +141,30 @@ public:
                 // crc failed
                 m_stat_crc_failed += 1;
             }
+
+            taskENTER_CRITICAL(&blaster_reader_buffer_spinlock);
+            message_available = m_buffer.message_available();
+            taskEXIT_CRITICAL(&blaster_reader_buffer_spinlock);
         }
     }
 
+    bool message_available() {
+        taskENTER_CRITICAL(&blaster_reader_messages_spinlock);
+        bool message_available = m_messages.message_available();
+        taskEXIT_CRITICAL(&blaster_reader_messages_spinlock);
+
+        return message_available;
+    }
+
+    DataPacket pop_message() {
+        taskENTER_CRITICAL(&blaster_reader_messages_spinlock);
+        DataPacket message = m_messages.pop_message();
+        taskEXIT_CRITICAL(&blaster_reader_messages_spinlock);
+
+        return message;
+    }
+
+#ifdef BLASTER_LINK_DEBUG_TIMINGS
     void save_deltas(bool save)
     {
         m_save_deltas = save;
@@ -170,7 +226,7 @@ public:
             aSerial->println();
         }
     }
-
+#endif
     // used for checking if a send was successful
     bool m_ack_state = false; // if an ACK was present in the last processed messages
 
@@ -190,6 +246,7 @@ private:
 
     DataPacketRingBuffer m_messages = DataPacketRingBuffer();
 
+#ifdef BLASTER_LINK_DEBUG_TIMINGS
     // deltas can be used to debug the timings
     // saved for 1 packet
     bool m_save_deltas = false;
@@ -201,6 +258,7 @@ private:
     bool m_save_decoded = false;
     char m_decoded[total_bits + 2];
     uint8_t m_decoded_writer = 0;
+#endif
 };
 
 BlasterReader br = BlasterReader();
@@ -224,10 +282,14 @@ void IRAM_ATTR handle_blaster_isr()
 {
     int64_t t = esp_timer_get_time();
 
+    taskENTER_CRITICAL_ISR(&link_state_spinlock);
     link_state = eLinkStateReceiving;
+    taskEXIT_CRITICAL_ISR(&link_state_spinlock);
 
+    taskENTER_CRITICAL_ISR(&blaster_reader_raw_spinlock);
     int64_t delta = t - br.m_ref_time;
     br.m_ref_time = t;
+    taskEXIT_CRITICAL_ISR(&blaster_reader_raw_spinlock);
 
     ReaderDecode decoded = eReaderDecodeUnknown;
 
@@ -238,20 +300,24 @@ void IRAM_ATTR handle_blaster_isr()
     else if ((delta) > 840 && (delta < 1313)) // 2 timeslot 1052 µs +/- 20% ==> 0
     {
         decoded = eReaderDecodeZero;
+        taskENTER_CRITICAL_ISR(&blaster_reader_raw_spinlock);
         if (br.m_state == eReaderStateReadBits)
         {
             br.m_raw_data = br.m_raw_data >> 1;
             br.m_bits_read += 1;
         }
+        taskEXIT_CRITICAL_ISR(&blaster_reader_raw_spinlock);
     }
     else if ((delta > 1680) && (delta < 2625)) // 4 timeslots 2100 µs +/- 20% ==> 1
     {
         decoded = eReaderDecodeOne;
+        taskENTER_CRITICAL_ISR(&blaster_reader_raw_spinlock);
         if (br.m_state == eReaderStateReadBits)
         {
             br.m_raw_data = (1 << 15) | (br.m_raw_data >> 1);
             br.m_bits_read += 1;
         }
+        taskEXIT_CRITICAL_ISR(&blaster_reader_raw_spinlock);
     }
     else if (delta > 3789) // 8+1 timeslot 4737 µs - 20% ==> start
     {
@@ -262,9 +328,12 @@ void IRAM_ATTR handle_blaster_isr()
         decoded = eReaderDecodeUnknown;
     }
 
+#ifdef BLASTER_LINK_DEBUG_TIMINGS
     br.add_delta(delta);
     br.add_decoded(decoded);
+#endif
 
+    taskENTER_CRITICAL_ISR(&blaster_reader_raw_spinlock);
     switch (br.m_state)
     {
     case eReaderStateWaitForStart:
@@ -305,13 +374,19 @@ void IRAM_ATTR handle_blaster_isr()
     if (br.m_state == eReaderStateError)
     {
         br.reset();
+        taskENTER_CRITICAL_ISR(&link_state_spinlock);
+        link_state = eLinkStateIdle;
+        taskEXIT_CRITICAL_ISR(&link_state_spinlock);
     }
 
     if (br.m_state == eReaderStateComplete)
     {
         br.move_to_buffer();
+        taskENTER_CRITICAL_ISR(&link_state_spinlock);
         link_state = eLinkStateIdle;
+        taskEXIT_CRITICAL_ISR(&link_state_spinlock);
     }
+    taskEXIT_CRITICAL_ISR(&blaster_reader_raw_spinlock);
 }
 
 
@@ -338,6 +413,14 @@ public:
 
     static void process_buffer() {
         br.process_buffer();
+    }
+
+    static bool message_available() {
+        return br.message_available();
+    }
+
+    static DataPacket pop_message() {
+        return br.pop_message();
     }
 
     /**
@@ -525,12 +608,16 @@ private:
     static bool send_to_blaster(DataPacket packet)
     {
         uint8_t waitCount = 0;
-        while (link_state != eLinkStateIdle)
+
+        taskENTER_CRITICAL(&link_state_spinlock);
+        bool link_is_not_idle = link_state != eLinkStateIdle;
+        taskEXIT_CRITICAL(&link_state_spinlock);
+
+        while (link_is_not_idle)
         {
             // minimal packet transmit time is 58 * 526us = 30508us
             // wait for half = 15ms
             Serial.print("send_to_blaster :: link not idle: ");
-            Serial.println(link_state);
             vTaskDelay(15 / portTICK_PERIOD_MS);
             waitCount += 1;
             if (waitCount > 3)
@@ -538,10 +625,16 @@ private:
                 Serial.println("send_to_blaster :: failed getting idle blaster link");
                 return false;
             }
+
+            taskENTER_CRITICAL(&link_state_spinlock);
+            link_is_not_idle = link_state != eLinkStateIdle;
+            taskEXIT_CRITICAL(&link_state_spinlock);
         }
         // stop listening on the blaster link, shared pin
         stop_listen();
+        taskENTER_CRITICAL(&link_state_spinlock);
         link_state = eLinkStateSending;
+        taskEXIT_CRITICAL(&link_state_spinlock);
 
         // configure the pin for sending
         pinMode(BLASTER_LINK_PIN, OUTPUT);
@@ -551,7 +644,11 @@ private:
         if ((rmt_send = rmtInit(BLASTER_LINK_PIN, RMT_TX_MODE, RMT_MEM_64)) == NULL)
         {
             Serial.println("send_to_blaster :: init sender failed");
+            
+            taskENTER_CRITICAL(&link_state_spinlock);
             link_state = eLinkStateIdle;
+            taskEXIT_CRITICAL(&link_state_spinlock);
+            
             start_listen();
             return false;
         }
@@ -563,7 +660,11 @@ private:
         {
             Serial.printf("send_to_blaster :: rmtSetTick failed expected: %fns realTick: %fns\n", one_micro_second_tick, realTick);
             rmtDeinit(rmt_send);
+
+            taskENTER_CRITICAL(&link_state_spinlock);
             link_state = eLinkStateIdle;
+            taskEXIT_CRITICAL(&link_state_spinlock);
+
             start_listen();
             return false;
         }
@@ -606,7 +707,11 @@ private:
         {
             Serial.println("send_to_blaster :: rmtWriteBlocking failed.");
             rmtDeinit(rmt_send);
+
+            taskENTER_CRITICAL(&link_state_spinlock);
             link_state = eLinkStateIdle;
+            taskEXIT_CRITICAL(&link_state_spinlock);
+
             start_listen();
             return false;
         }
@@ -616,7 +721,10 @@ private:
         br.m_ack_state = false;
 
         // listen on the blaster link again
+        taskENTER_CRITICAL(&link_state_spinlock);
         link_state = eLinkStateWaitForAck;
+        taskEXIT_CRITICAL(&link_state_spinlock);
+    
         start_listen();
 
         // clean up the esp32 rmt
@@ -628,16 +736,23 @@ private:
         if (br.m_ack_state == false)
         {
             Serial.println("send_to_blaster :: no Ack received.");
+
+            taskENTER_CRITICAL(&link_state_spinlock);
             link_state = eLinkStateIdle;
+            taskEXIT_CRITICAL(&link_state_spinlock);
+
             return false;
         }
         else
         {
+            taskENTER_CRITICAL(&link_state_spinlock);
             if (link_state == eLinkStateWaitForAckReady)
             {
                 Serial.println("send_to_blaster :: no Ack Ready received.");
+
                 link_state = eLinkStateIdle;
             }
+            taskEXIT_CRITICAL(&link_state_spinlock);
             // packet was Acked, but blaster did not send Ack Ready
             return true;
         }

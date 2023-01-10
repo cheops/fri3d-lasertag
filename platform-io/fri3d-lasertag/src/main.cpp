@@ -4,6 +4,7 @@
 #include "blaster_link.hpp"
 #include "ir_receive.hpp"
 #include "ble_client.hpp"
+#include "profile_mvp.hpp"
 
 
 // multi core documentation https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/freertos-smp.html
@@ -12,6 +13,11 @@
 // TimeBlaster https://github.com/area3001/Timeblaster
 
 // to read https://microcontrollerslab.com/category/freertos-arduino-tutorial/
+
+StateMachine mvp_statemachine;
+
+
+
 
 int64_t startCountdownMicros = esp_timer_get_time();
 int64_t lastMicrosCountdown = startCountdownMicros;
@@ -28,32 +34,64 @@ bool blaster_set_settings_supported = true;
 void setup(void)
 {
     Serial.begin(115200);
+    delay(500);
 
-    display.init();
+    //Player player_rex_profile = Player(REX);
+    //Player player_giggle_profile = Player(GIGGLE);
+    //Player player_buzz_profile = Player(BUZZ);
+    //Flag flag_rex_profile = Flag(REX);
+    //Flag flag_giggle_profile = Flag(GIGGLE);
+    Flag flag_buzz_profile = Flag(BUZZ);
 
-    display.draw_upper_left(100);
-    display.draw_upper_right(100);
-    display.draw_static_middle("Playing");
+
+    mvp_statemachine =  StateMachine(flag_buzz_profile, transitions_mvp, 7, BOOTING);
 
     blasterLink.start_listen();
 
     badgeIrReceiver.setup();
 
-    bleClient.start_listen(eBleMessageTypePrestart);
+    //bleClient.start_listen(eBleMessageTypePrestart);
+
     
 }
 
 void loop()
 {
+    //mvp_statemachine.start();
 
     blasterLink.process_buffer();
-    badgeIrReceiver.receive_ir_data();
-
-    if (bleClient.listen_type_found()) {
-        bleClient.get_ble_message().print(&Serial);
-        bleClient.reset();
+    
+    // process received blaster messages
+    while (blasterLink.message_available()) {
+        DataPacket message = blasterLink.pop_message();
+        Serial.print("-Blaster_link: ");
+        message.print(&Serial);
     }
 
+
+    badgeIrReceiver.receive_ir_data();
+
+    // process received ir messages
+    while (badgeIrReceiver.message_available()) {
+        DataPacket message = badgeIrReceiver.pop_message();
+        Serial.print("-Ir_link: ");
+        message.print(&Serial);
+    }
+
+
+    if (bleClient.listen_type_found()) {
+        BleMessage ble_message = bleClient.get_ble_message();
+        ble_message.print(&Serial);
+        bleClient.reset();
+    } else {
+        if (!bleClient.is_listening()) {
+            delay(1000);
+            bleClient.start_listen(eBleMessageTypePrestart);
+        }
+    }
+
+
+    /*
     startCountdownMicros = esp_timer_get_time();
     if (startCountdownMicros - lastMicrosCountdown >= countdownInterval)
     {
@@ -70,7 +108,7 @@ void loop()
 
         display.draw_middle(playing_time);
     }
-
+    */
 
     // update blaster settings
     startBlasterSendMicros = esp_timer_get_time();
@@ -94,4 +132,5 @@ void loop()
         team += 1;
         if (team >= 16) team = 0;
     }
+    
 }

@@ -1,3 +1,8 @@
+//
+// board esp32 dev module
+// flash size 4096k
+// no PSRAM
+//
 // https://www.espressif.com/sites/default/files/documentation/esp32_bluetooth_architecture_en.pdf
 // bluetooth assigned numbers https://www.bluetooth.com/specifications/assigned-numbers/
 #include "esp_bt_device.h"
@@ -7,11 +12,11 @@
 #include <BLEDevice.h>
 #include <Fri3dButtons.h>
 
-#define PRESTART_TYPE 0
-#define NEXT_ROUND_TYPE 1
+#define PRESTART_TYPE 1
+#define NEXT_ROUND_TYPE 2
 
-#define HIDING_TIME 120
-#define PLAYING_TIME 300
+#define HIDING_TIME 60*2
+#define PLAYING_TIME 60*5
 #define HIT_DAMAGE 5
 #define HIT_TIMEOUT 3
 #define SHOT_AMMO 1
@@ -27,7 +32,7 @@ Fri3dButtons buttons = Fri3dButtons();
 bool button0_pressed = false;
 bool button1_pressed = false;
 
-long long startMicros = esp_timer_get_time();
+int64_t startMicros = esp_timer_get_time();
 
 /**
 bluetooth advertisement packet length = 37 bytes
@@ -150,7 +155,7 @@ void setup() {
 }
 
 bool prestartCounting = false;
-long long lastMicrosPrestart = 0;
+int64_t lastMicrosPrestart = 0;
 const long prestartInterval = 1000000; // 1 second
 int countdown_hiding_time = HIDING_TIME;
 bool nextRound = false;

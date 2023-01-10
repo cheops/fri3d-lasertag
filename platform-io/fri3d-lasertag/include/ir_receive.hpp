@@ -8,6 +8,8 @@
 #include "Arduino.h"
 #include "blaster_packet.hpp"
 
+static portMUX_TYPE ir_receiver_buffer_spinlock = portMUX_INITIALIZER_UNLOCKED;
+
 class BadgeIrReceiver {
 public:
     BadgeIrReceiver(){}
@@ -15,6 +17,20 @@ public:
     void setup() {
         // setup ir receiver
         IrReceiver.begin(IR_RECEIVE_PIN);
+    }
+
+    bool message_available() {
+        taskENTER_CRITICAL(&ir_receiver_buffer_spinlock);
+        bool available = m_buffer.message_available();
+        taskEXIT_CRITICAL(&ir_receiver_buffer_spinlock);
+        return available;
+    }
+
+    DataPacket pop_message() {
+        taskENTER_CRITICAL(&ir_receiver_buffer_spinlock);
+        DataPacket p = m_buffer.pop_message();
+        taskEXIT_CRITICAL(&ir_receiver_buffer_spinlock);
+        return p;
     }
 
     void receive_ir_data() {
@@ -27,10 +43,12 @@ public:
                 t.time_micros = time_micros;
 
                 DataPacket packet = DataPacket(t);
-                Serial.print("IR_RECEIVE_PIN: ");
-                packet.print(&Serial);
+                //Serial.print("IR_RECEIVE_PIN: ");
+                //packet.print(&Serial);
                 if (packet.calculate_crc() == packet.get_crc()) {
+                    taskENTER_CRITICAL(&ir_receiver_buffer_spinlock);
                     m_buffer.add_message(packet);
+                    taskEXIT_CRITICAL(&ir_receiver_buffer_spinlock);
                 } else {
                     // crc failed
                     m_stat_crc_failed += 1;
