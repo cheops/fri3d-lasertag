@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
 #include "mvp.hpp"
-#include "blaster_link.hpp"
 #include "ir_receive.hpp"
 #include "ble_client.hpp"
 #include "profile_mvp.hpp"

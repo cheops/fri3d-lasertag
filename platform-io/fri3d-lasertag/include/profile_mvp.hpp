@@ -6,6 +6,7 @@
 #include "statemachine.hpp"
 #include "team.hpp"
 #include "mvp.hpp"
+#include "blaster_link.hpp"
 
 class FlagAndPlayer : public Profile, public Model {
 public:
@@ -39,6 +40,7 @@ public:
 
     virtual void _practicing() {
         Serial.println("FlagAndPlayer::_practicing");
+        blasterLink.set_team(m_team.team_color());
         m_display->draw_static_middle(m_ptr_state->m_name);
         m_health = 100;
         m_display->draw_upper_left(m_health);
@@ -87,9 +89,10 @@ public:
 
     void _practicing() {
         Serial.println("Player::_practicing");
-        m_ammo = 100;
         reinterpret_cast<DisplayPlayer*>(m_display)->init();
         FlagAndPlayer::_practicing();
+        m_ammo = 100;
+        reinterpret_cast<DisplayPlayer*>(m_display)->draw_upper_right(m_ammo);
     }
 protected:
     uint8_t m_ammo;

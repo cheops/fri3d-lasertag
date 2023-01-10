@@ -4,6 +4,7 @@
 #include "team.hpp"
 #include "display.hpp"
 #include "statemachine.hpp"
+#include "blaster_packet.hpp"
 
 static const uint16_t HIDING_TIME = 10;
 static const uint16_t PLAYING_TIME = 60 * 2;
@@ -16,9 +17,9 @@ static const uint8_t PLAYING_CHANNEL = 3;
 static const uint8_t INVALID_CHANNEL = 15;
 
 
-const Team REX(ConvertRGB(255, 0, 0), "Rex");
-const Team GIGGLE(ConvertRGB(0, 140, 0), "Giggle");
-const Team BUZZ(ConvertRGB(0, 0, 210), "Buzz");
+const Team REX(ConvertRGB(255, 0, 0), "Rex", eTeamRex);
+const Team GIGGLE(ConvertRGB(0, 140, 0), "Giggle", eTeamGiggle);
+const Team BUZZ(ConvertRGB(0, 0, 210), "Buzz", eTeamBuzz);
 
 
 State BOOTING = State("booting");
