@@ -34,6 +34,7 @@ void setup(void)
     delay(500);
 
     blasterLink.start_listen();
+    blasterLink.set_settings(true); // mute the blaster
 
     badgeIrReceiver.setup();
 
