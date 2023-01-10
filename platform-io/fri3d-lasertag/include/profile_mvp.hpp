@@ -7,140 +7,100 @@
 #include "team.hpp"
 #include "mvp.hpp"
 
-class FlagAndPlayer: public Profile, public Model {
+class FlagAndPlayer : public Profile, public Model {
 public:
-    FlagAndPlayer(const Team team) : Profile(), Model(), m_team(team) {
-        Serial.printf("Create Profile FlagAndPlayer %s\n", team.name().c_str());
-        m_display.init();
+    FlagAndPlayer(const Team team, Display* df) : Profile(), Model(), m_display(df), m_team(team) {
+        Serial.printf("Create FlagAndPlayer Model %s\n", team.name().c_str());
     }
-    const Event* run(State state) {
-        Serial.printf("FlagAndPlayer::run state:%s\n", state);
-        m_state = state;
-        if (state == BOOTING) _booting();
-        else if (state == PRACTICING) _practicing();
-        else if (state == HIDING) _hiding();
-        else if (state == PLAYING) _playing();
-        else if (state == FINISHING) _finishing();
-        
-        return Model::run(state);
+
+    Event* run(State *ptr_state) override {
+        Serial.printf("FlagAndPlayer::run state:%s\n", ptr_state->m_name.c_str());
+        m_ptr_state = ptr_state;
+
+        m_display->draw_static_middle(m_ptr_state->m_name);
+
+        if (m_ptr_state->equals(&BOOTING)) _booting();
+        else if (m_ptr_state->equals(&PRACTICING)) _practicing();
+        else if (m_ptr_state->equals(&HIDING)) _hiding();
+        else if (m_ptr_state->equals(&PLAYING)) _playing();
+        else if (m_ptr_state->equals(&FINISHING)) _finishing();
+
+        delay(2000);
+        return Model::run(m_ptr_state);
     }
-protected:
-    const Team m_team;
-    Display m_display;
-    State m_state;
-    uint8_t m_health;
 
     void _booting() {
-        m_display.draw_static_middle(m_state.m_name);
-
-        delay(1000);
-        Model::set_event(&CONFIRM_PROFILE);
+        Serial.println("FlagAndPlayer::_booting");
+        std::vector<Profile*> profiles = Profile::find_profiles();
+        uint8_t rnd_index = random(profiles.size());
+        CONFIRM_PROFILE.set_new_model(reinterpret_cast<Model*>(profiles[rnd_index]));
+        set_event(&CONFIRM_PROFILE);
     }
 
-    const Event* listen_ble_preStart() {
-        bleClient.start_listen(eBleMessageTypePrestart);
-        while (!bleClient.listen_type_found())
-        {
-            vTaskDelay(1000/portTICK_PERIOD_MS);
-        }
-        
-        bleClient.get_ble_message().print(&Serial);
-        bleClient.reset();
-        return &PRESTART;
-    }
-
-    void _practicing() {
+    virtual void _practicing() {
+        Serial.println("FlagAndPlayer::_practicing");
+        m_display->draw_static_middle(m_ptr_state->m_name);
         m_health = 100;
-        m_display.init();
-        m_display.draw_static_middle(m_state.m_name);
-        m_display.draw_middle(0);
-        m_display.draw_upper_left(m_health);
-
-        const Event* new_event = listen_ble_preStart();
-        Model::set_event(new_event);
+        m_display->draw_upper_left(m_health);
+        set_event(&PRESTART);
     }
+
     void _hiding() {
-        m_health = 100;
-        m_display.init();
-        m_display.draw_static_middle(m_state.m_name);
-        m_display.draw_middle(0);
-        m_display.draw_upper_left(m_health);
+        set_event(&COUNTDOWN_END);
     }
 
     void _playing() {
-        m_health = 100;
-        m_display.init();
-        m_display.draw_static_middle(m_state.m_name);
-        m_display.draw_middle(0);
-        m_display.draw_upper_left(m_health);
-        m_display.draw_static_middle(m_state.m_name);
-    }
-    
-    const Event* liste_ble_nextRound() {
-        bleClient.start_listen(eBleMessageTypeNextRound);
-        while (!bleClient.listen_type_found())
-        {
-            vTaskDelay(1000/portTICK_PERIOD_MS);
-        }
-        
-        bleClient.get_ble_message().print(&Serial);
-        bleClient.reset();
-
-        return &NEXT_ROUND;
-
+        set_event(&COUNTDOWN_END);
     }
 
     void _finishing() {
-        m_health = 100;
-        m_display.init();
-        m_display.draw_static_middle(m_state.m_name);
-        m_display.draw_middle(0);
-        m_display.draw_upper_left(m_health);
-        m_display.draw_static_middle(m_state.m_name);
-
-        const Event* new_event = listen_ble_preStart();
-        Model::set_event(new_event);
+        set_event(&BOOT);
+        //set_event(&NEXT_ROUND);
     }
 
+protected:
+    Display* m_display;
+    State* m_ptr_state;
+    uint8_t m_health;
+    const Team m_team;
 };
+
 
 class Flag : public FlagAndPlayer {
 public:
-    Flag(const Team team) : FlagAndPlayer(team) {
-        Serial.printf("Create Profile Flag %s\n", team.name().c_str());
-        m_display = DisplayFlag(team);
+    Flag(const Team team, DisplayFlag* df) : FlagAndPlayer(team, df) {
+        reinterpret_cast<DisplayFlag*>(m_display)->init();
     }
 
-    const Event* run(State state) {
-        Serial.printf("Flag::run state:%s\n", state);
-        return FlagAndPlayer::run(state);
+    void _practicing() override {
+        Serial.println("Flag::_practicing");
+        reinterpret_cast<DisplayFlag*>(m_display)->init();
+        FlagAndPlayer::_practicing();
     }
-
-private:
-
-
 };
 
-class Player: public FlagAndPlayer {
+class Player : FlagAndPlayer {
 public:
-    Player(const Team team) : FlagAndPlayer(team) {
-        Serial.printf("Create Profile Player %s\n", team.name().c_str());
-        m_display = DisplayPlayer(team);
+    Player(const Team team, DisplayPlayer* df) : FlagAndPlayer(team, df) {
+        reinterpret_cast<DisplayPlayer*>(m_display)->init();
     }
 
-    const Event* run(State state) {
-        Serial.printf("Player::run state:%s\n", state);
-        return FlagAndPlayer::run(state);
+    void _practicing() {
+        Serial.println("Player::_practicing");
+        m_ammo = 100;
+        reinterpret_cast<DisplayPlayer*>(m_display)->init();
+        FlagAndPlayer::_practicing();
     }
-
-    void _booting() {
-        FlagAndPlayer::_booting();
-    }
-
-
-private:
-
+protected:
+    uint8_t m_ammo;
 };
 
+
+Player PLAYER_REX_PROFILE = Player(REX, &DISPLAY_PLAYER_REX);
+Player PLAYER_GIGGLE_PROFILE = Player(GIGGLE, &DISPLAY_PLAYER_GIGGLE);
+Player PLAYER_BUZZ_PROFILE = Player(BUZZ, &DISPLAY_PLAYER_BUZZ);
+Flag FLAG_REX_PROFILE = Flag(REX, &DISPLAY_FLAG_REX);
+Flag FLAG_GIGGLE_PROFILE = Flag(GIGGLE, &DISPLAY_FLAG_GIGGLE);
+Flag FLAG_BUZZ_PROFILE = Flag(BUZZ, &DISPLAY_FLAG_BUZZ);
 
 #endif

@@ -24,7 +24,7 @@ public:
     m_team_name = team.name();
   }
   
-  void init()
+  virtual void init()
   {
     tft.init(240, 240);
     tft.setRotation( 2 );
@@ -96,23 +96,22 @@ protected:
     tft.print("Health%");
   }
 
-  void draw_static_upper_right();
-
-  void draw_static_bottom()
-  {
+  virtual void draw_static_upper_right() {};
+  virtual void draw_static_bottom() {
     // bottom bg_color
     tft.fillRect(m_width, 199 + int(m_width / 2), 240 - m_width * 2, 29, m_bg_color);
-  }
+  };
+
 };
 
 
 class DisplayPlayer: public Display
 {
 public:
-  DisplayPlayer() : Display() {}
+  //DisplayPlayer() : Display() {}
   DisplayPlayer(const Team &team) : Display(team) {}
 
-  void init()
+  void init() override
   {
     Display::init();
     draw_static_upper_right();
@@ -127,7 +126,7 @@ public:
     tft.print(ammo);
   }
 protected:
-  void draw_static_upper_right() {
+  void draw_static_upper_right() override {
     // upper right bg_color
     tft.fillRect(120 + int(m_width / 2), m_width, 120 - m_width - int(m_width / 2), 82 - int(1.5 * m_width), m_bg_color);
     tft.setCursor(120 + 4 + 6, 14);
@@ -136,7 +135,7 @@ protected:
     tft.print("Ammo%");
   }
 
-  void draw_static_bottom()
+  void draw_static_bottom() override
   {
     Display::draw_static_bottom();
     tft.setCursor(8 + 50, 209);
@@ -151,10 +150,10 @@ protected:
 class DisplayFlag: public Display
 {
 public:
-  DisplayFlag() : Display() {}
+  //DisplayFlag() : Display() {}
   DisplayFlag(const Team &team) : Display(team) {}
 
-  void init()
+  void init() override 
   {
     Display::init();
     draw_static_upper_right();
@@ -162,12 +161,12 @@ public:
   }
 
 protected:
-  void draw_static_upper_right() {
-    // upper right bg_color
-    tft.fillRect(120 + int(m_width / 2), m_width, 120 - m_width - int(m_width / 2), 82 - int(1.5 * m_width), m_bg_color);
+  void draw_static_upper_right() override {
+    // upper right color
+    tft.fillRect(120 + int(m_width / 2), m_width, 120 - m_width - int(m_width / 2), 82 - int(1.5 * m_width), m_color);
   }
 
-  void draw_static_bottom()
+  void draw_static_bottom() override
   {
     Display::draw_static_bottom();
     tft.setCursor(8 + 50, 209);

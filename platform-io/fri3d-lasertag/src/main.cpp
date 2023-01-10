@@ -14,9 +14,7 @@
 
 // to read https://microcontrollerslab.com/category/freertos-arduino-tutorial/
 
-StateMachine mvp_statemachine;
-
-
+StateMachine mvp_statemachine = StateMachine(&FLAG_BUZZ_PROFILE, TRANSITIONS_MVP, TRANSITIONS_COUNT, &BOOTING);
 
 
 int64_t startCountdownMicros = esp_timer_get_time();
@@ -36,16 +34,6 @@ void setup(void)
     Serial.begin(115200);
     delay(500);
 
-    //Player player_rex_profile = Player(REX);
-    //Player player_giggle_profile = Player(GIGGLE);
-    //Player player_buzz_profile = Player(BUZZ);
-    //Flag flag_rex_profile = Flag(REX);
-    //Flag flag_giggle_profile = Flag(GIGGLE);
-    Flag flag_buzz_profile = Flag(BUZZ);
-
-
-    mvp_statemachine =  StateMachine(flag_buzz_profile, transitions_mvp, 7, BOOTING);
-
     blasterLink.start_listen();
 
     badgeIrReceiver.setup();
@@ -57,7 +45,7 @@ void setup(void)
 
 void loop()
 {
-    //mvp_statemachine.start();
+    mvp_statemachine.start();
 
     blasterLink.process_buffer();
     

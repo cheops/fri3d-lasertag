@@ -21,27 +21,37 @@ const Team GIGGLE(ConvertRGB(0, 140, 0), "Giggle");
 const Team BUZZ(ConvertRGB(0, 0, 210), "Buzz");
 
 
-const State BOOTING = State("booting");
-const State PRACTICING = State("practicing");
-const State HIDING = State("hiding");
-const State PLAYING = State("playing");
-const State FINISHING = State("finishing");
+State BOOTING = State("booting");
+State PRACTICING = State("practicing");
+State HIDING = State("hiding");
+State PLAYING = State("playing");
+State FINISHING = State("finishing");
 
-const Event BOOT = Event("boot");
-const Event CONFIRM_PROFILE = Event("confirm_profile");
-const Event PRESTART = Event("prestart");
-const Event COUNTDOWN_END = Event("countdown_end");
-const Event DEAD = Event("dead");
-const Event NEXT_ROUND = Event("next_round");
+Event BOOT = Event("boot");
+Event CONFIRM_PROFILE = Event("confirm_profile");
+Event PRESTART = Event("prestart");
+Event COUNTDOWN_END = Event("countdown_end");
+Event DEAD = Event("dead");
+Event NEXT_ROUND = Event("next_round");
 
-Transition transitions_mvp[] = {
-    Transition(CONFIRM_PROFILE, BOOTING, PRACTICING),
-    Transition(PRESTART, PRACTICING, HIDING),
-    Transition(COUNTDOWN_END, HIDING, PLAYING),
-    Transition(COUNTDOWN_END, PLAYING, FINISHING),
-    Transition(DEAD, PLAYING, FINISHING),
-    Transition(BOOT, FINISHING, BOOTING),
-    Transition(NEXT_ROUND, FINISHING, PRACTICING),
+static const uint8_t TRANSITIONS_COUNT = 7;
+Transition TRANSITIONS_MVP[TRANSITIONS_COUNT] = {
+    Transition(&CONFIRM_PROFILE, &BOOTING, &PRACTICING),
+    Transition(&PRESTART, &PRACTICING, &HIDING),
+    Transition(&COUNTDOWN_END, &HIDING, &PLAYING),
+    Transition(&COUNTDOWN_END, &PLAYING, &FINISHING),
+    Transition(&DEAD, &PLAYING, &FINISHING),
+    Transition(&BOOT, &FINISHING, &BOOTING),
+    Transition(&NEXT_ROUND, &FINISHING, &PRACTICING),
 };
+
+DisplayFlag DISPLAY_FLAG_REX = DisplayFlag(REX);
+DisplayFlag DISPLAY_FLAG_GIGGLE = DisplayFlag(GIGGLE);
+DisplayFlag DISPLAY_FLAG_BUZZ = DisplayFlag(BUZZ);
+DisplayPlayer DISPLAY_PLAYER_REX = DisplayPlayer(REX);
+DisplayPlayer DISPLAY_PLAYER_GIGGLE = DisplayPlayer(GIGGLE);
+DisplayPlayer DISPLAY_PLAYER_BUZZ = DisplayPlayer(BUZZ);
+
+
 
 #endif
