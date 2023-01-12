@@ -15,7 +15,7 @@ FRI3D_WIFI_PASSWORD = 'fri3dcamp'
 # example string player data: "greenC_00AA11BB22CCI_100H_aliveS_14HI_58SH_125T_"
 data_type = "flag"
 data_type = "player"
-game_id = "0012"
+mqtt_game_id = "0012"
 team = "red"
 health = "100"
 status = "alive"
@@ -24,9 +24,9 @@ hits = 14
 shots = 58
 remaining_seconds = 125
 
-flag_data = f"{game_id}G_{team}C_{health}H_{status}S_{remaining_seconds}T_"
+flag_data = f"{mqtt_game_id}G_{team}C_{health}H_{status}S_{remaining_seconds}T_"
 
-player_data = f"{team}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{game_id}G_"
+player_data = f"{team}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{mqtt_game_id}G_"
 
 
 def _connect_wifi():

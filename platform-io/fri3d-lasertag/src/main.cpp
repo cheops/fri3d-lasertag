@@ -34,19 +34,26 @@ void setup(void)
     delay(500);
 
     blasterLink.start_listen();
-    blasterLink.set_settings(true); // mute the blaster
+    //blasterLink.set_settings(true); // mute the blaster
 
-    badgeIrReceiver.setup();
+    badgeIrReceiver.start_listen();
 
     //bleClient.start_listen(eBleMessageTypePrestart);
 
+    mvp_statemachine.start();
+    // void loop() is never reached, since statemachine keeps running forever
+    // should be called in StateMachine loop
+    // blasterLink.process_buffer()
+    // badgeIrReceiver.receive_ir_data();
     
 }
 
 void loop()
 {
-    mvp_statemachine.start();
+    Serial.println("We should never get here.");
+    delay(1000);
 
+    /*
     blasterLink.process_buffer();
     
     // process received blaster messages
@@ -79,25 +86,6 @@ void loop()
     }
 
 
-    /*
-    startCountdownMicros = esp_timer_get_time();
-    if (startCountdownMicros - lastMicrosCountdown >= countdownInterval)
-    {
-        int64_t elapsed_sec = (startCountdownMicros - lastMicrosCountdown) / 1000000;
-        lastMicrosCountdown = startCountdownMicros;
-        playing_time -= elapsed_sec;
-        if (playing_time > PLAYING_TIME)
-        { 
-            // uint16_t rollover
-            playing_time = PLAYING_TIME;
-        }
-
-        // Serial.println(playing_time);
-
-        display.draw_middle(playing_time);
-    }
-    */
-
     // update blaster settings
     startBlasterSendMicros = esp_timer_get_time();
     if (startBlasterSendMicros - lastMicrosBlasterSend >= blasterSendInterval)
@@ -120,5 +108,7 @@ void loop()
         team += 1;
         if (team >= 16) team = 0;
     }
+
+    */
     
 }

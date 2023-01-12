@@ -35,7 +35,7 @@ enum BleMessageType : uint8_t
  * # uint8_t shot_ammo (1 byte 0-100) ammo %
  * # uint8_t practicing_channel (half byte 0-15) 0 is default channel, 3 is default practicing_channel
  * # uint8_t playing_channel (half byte 0-15) 0 is default channel, 4 is default playing_channel
- * # uint32_t game_id (4 bytes 0-4294967296)
+ * # uint32_t mqtt_game_id (4 bytes 0-4294967296)
  * # bool mqtt_during_playing (1 bit 0-1)
  * 
  */
@@ -66,7 +66,7 @@ public:
                m_man_spec_data[4];
     }
 
-    uint8_t get_hit_damaage() {
+    uint8_t get_hit_damage() {
         return m_man_spec_data[5];
     }
 
@@ -86,7 +86,7 @@ public:
         return m_man_spec_data[8] & 0x0F;
     }
 
-    uint32_t get_game_id() {
+    uint32_t get_mqtt_game_id() {
     return m_man_spec_data[9]*16777216 + 
            m_man_spec_data[10]*65536 + 
            m_man_spec_data[11]*256 + 
@@ -97,7 +97,7 @@ public:
         return bool(m_man_spec_data[13] & 0x01);
     }
 
-    void print(Print *aSerial) {
+    void print(Print* aSerial) {
         aSerial->print("BleMessage: ");
         aSerial->print("type:");
         aSerial->print(get_message_type());
@@ -106,7 +106,7 @@ public:
         aSerial->print(", playing_time:");
         aSerial->print(get_playing_channel());
         aSerial->print(", hit_damage:");
-        aSerial->print(get_hit_damaage());
+        aSerial->print(get_hit_damage());
         aSerial->print(", hit_timeout:");
         aSerial->print(get_hit_timeout());
         aSerial->print(", shot_ammo:");
@@ -115,8 +115,8 @@ public:
         aSerial->print(get_practicing_channel());
         aSerial->print(", playing_channel:");
         aSerial->print(get_playing_channel());
-        aSerial->print(", game_id:");
-        aSerial->print(get_game_id());
+        aSerial->print(", mqtt_game_id:");
+        aSerial->print(get_mqtt_game_id());
         aSerial->print(", mqtt_during_playing:");
         aSerial->print(get_mqtt_during_playing()?"true":"false");
         aSerial->println();

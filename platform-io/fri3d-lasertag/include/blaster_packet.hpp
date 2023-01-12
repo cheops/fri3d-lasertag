@@ -91,7 +91,7 @@ public:
     return TeamColor((m_t.raw_data & 0b0000000000000111) >> 0);
   }
   
-  void get_team_str(Print *aSerial) {
+  void get_team_str(Print* aSerial) {
     switch (get_team()) {
       case eNoTeam:
         aSerial->print("NO TEAM");
@@ -192,7 +192,7 @@ public:
     return calc_crc;
   }
 
-  void print(Print *aSerial) {
+  void print(Print* aSerial) {
     aSerial->print("packet: ");
     aSerial->print("time: ");
     aSerial->print(get_time_micros());

@@ -14,9 +14,14 @@ class BadgeIrReceiver {
 public:
     BadgeIrReceiver(){}
 
-    void setup() {
+    void start_listen() {
         // setup ir receiver
         IrReceiver.begin(IR_RECEIVE_PIN);
+    }
+
+    void stop_listen() {
+        // setup ir receiver
+        IrReceiver.stop();
     }
 
     bool message_available() {

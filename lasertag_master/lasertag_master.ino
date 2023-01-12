@@ -22,7 +22,7 @@
 #define SHOT_AMMO 1
 #define PRACTICING_CHANNEL 2
 #define PLAYING_CHANNEL 3
-#define GAME_ID 1234
+#define MQTT_GAME_ID 1234
 #define MQTT_DURING_PLAYING 0
 
 #define NEXT_ROUND_REPEAT 120
@@ -52,7 +52,7 @@ uint8_t hit_timeout (1 byte 0-255) seconds
 uint8_t shot_ammo (1 byte 0-100) ammo %
 uint8_t practicing_channel (half byte 0-15) 0 is default channel, 3 is default practicing_channel
 uint8_t playing_channel (half byte 0-15) 0 is default channel, 4 is default playing_channel
-uint32_t game_id (4 bytes 0-4294967296)
+uint32_t mqtt_game_id (4 bytes 0-4294967296)
 bool mqtt_during_playing (1 bit 0-1)
 */
 std::string encodeManufacturerData(
@@ -64,7 +64,7 @@ std::string encodeManufacturerData(
   uint8_t shot_ammo,
   uint8_t practicing_channel,
   uint8_t playing_channel,
-  uint32_t game_id,
+  uint32_t mqtt_game_id,
   bool mqtt_during_playing
   )
   {
@@ -89,10 +89,10 @@ std::string encodeManufacturerData(
 
     manu_data[10] = ( (practicing_channel << 4) & 0xF0 ) | ( playing_channel & 0x0F );
 
-    manu_data[11] = (game_id >> 24) & 0xFF;
-    manu_data[12] = (game_id >> 16) & 0xFF;
-    manu_data[13] = (game_id >> 8) & 0xFF;
-    manu_data[14] = game_id & 0xFF;
+    manu_data[11] = (mqtt_game_id >> 24) & 0xFF;
+    manu_data[12] = (mqtt_game_id >> 16) & 0xFF;
+    manu_data[13] = (mqtt_game_id >> 8) & 0xFF;
+    manu_data[14] = mqtt_game_id & 0xFF;
 
     manu_data[15] = mqtt_during_playing & 0x01; // limit to 0-1
 
@@ -211,11 +211,11 @@ void loop() {
       Serial.print(" ");
 
       BLEAdvertisementData advertisementData = BLEAdvertisementData();
-      std::string s = encodeManufacturerData(PRESTART_TYPE, countdown_hiding_time, PLAYING_TIME, HIT_DAMAGE, HIT_TIMEOUT, SHOT_AMMO, PRACTICING_CHANNEL, PLAYING_CHANNEL, GAME_ID, MQTT_DURING_PLAYING);
+      std::string s = encodeManufacturerData(PRESTART_TYPE, countdown_hiding_time, PLAYING_TIME, HIT_DAMAGE, HIT_TIMEOUT, SHOT_AMMO, PRACTICING_CHANNEL, PLAYING_CHANNEL, MQTT_GAME_ID, MQTT_DURING_PLAYING);
       printAdvData(s);
       advertisementData.setManufacturerData(s);
 
-      BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+      BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
       pAdvertising->setDeviceAddress(&newMACAddress[0]);
       pAdvertising->setAdvertisementType(ADV_TYPE_NONCONN_IND); //Non-Connectable Non-Scannable Undirected advertising
       pAdvertising->setScanResponse(false);
@@ -246,11 +246,11 @@ void loop() {
       Serial.print(" ");
 
       BLEAdvertisementData advertisementData = BLEAdvertisementData();
-      std::string s = encodeManufacturerData(NEXT_ROUND_TYPE, HIDING_TIME, PLAYING_TIME, HIT_DAMAGE, HIT_TIMEOUT, SHOT_AMMO, PRACTICING_CHANNEL, PLAYING_CHANNEL, GAME_ID, MQTT_DURING_PLAYING);
+      std::string s = encodeManufacturerData(NEXT_ROUND_TYPE, HIDING_TIME, PLAYING_TIME, HIT_DAMAGE, HIT_TIMEOUT, SHOT_AMMO, PRACTICING_CHANNEL, PLAYING_CHANNEL, MQTT_GAME_ID, MQTT_DURING_PLAYING);
       printAdvData(s);
       advertisementData.setManufacturerData(s);
 
-      BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+      BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
       pAdvertising->setDeviceAddress(&newMACAddress[0]);
       pAdvertising->setAdvertisementType(ADV_TYPE_NONCONN_IND); //Non-Connectable Non-Scannable Undirected advertising
       pAdvertising->setScanResponse(false);

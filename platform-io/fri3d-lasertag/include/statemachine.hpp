@@ -16,7 +16,7 @@ class State {
         friend bool operator==(const State& lhs, const State& rhs) {
             return lhs.m_name == rhs.m_name;
         }
-        bool equals(State *otherState) {
+        bool equals(State* otherState) {
             return m_name == otherState->m_name;
         }
 };
@@ -27,14 +27,11 @@ public:
         Serial.println("create model");
     }
 
-    void set_event(Event *ptr_event) {
-        Serial.println("set event");
-        m_ptr_event = ptr_event;
-    }
+    void set_event(Event* ptr_event);
     
-    virtual Event* run(State *ptr_state);
+    virtual Event* run(State* ptr_state);
 protected:
-    Event *m_ptr_event;
+    Event* m_ptr_event;
 };
 
 class Event {
@@ -53,7 +50,7 @@ class Event {
             }
         }
         
-        bool equals(Event *otherEvent) {
+        bool equals(Event* otherEvent) {
             return m_name == otherEvent->m_name;
         }
 
@@ -71,12 +68,17 @@ Event* Model::run(State* ptr_state) {
     return m_ptr_event;    
 }
 
+void Model::set_event(Event* ptr_event)  {
+    Serial.printf("set event: %s\n", ptr_event->m_name.c_str());
+    m_ptr_event = ptr_event;
+}
+
 class Transition {
     public:
-        Transition(Event *trigger, State *source, State *destination) : m_ptr_trigger(trigger), m_ptr_source(source), m_ptr_destination(destination) {}
-        Event *m_ptr_trigger;
-        State *m_ptr_source;
-        State *m_ptr_destination;
+        Transition(Event* trigger, State* source, State* destination) : m_ptr_trigger(trigger), m_ptr_source(source), m_ptr_destination(destination) {}
+        Event* m_ptr_trigger;
+        State* m_ptr_source;
+        State* m_ptr_destination;
 };
 
 class StateMachine {
@@ -84,7 +86,7 @@ public:
     StateMachine(){
         Serial.println("default constructor StateMachine");
     }
-    StateMachine(Model *model, Transition *transitions, uint8_t transitions_size, State *initial_state) : 
+    StateMachine(Model* model, Transition* transitions, uint8_t transitions_size, State* initial_state) : 
         m_ptr_model(model), m_ptr_transitions(transitions), m_transitions_size(transitions_size), m_ptr_state(initial_state) {
         Serial.println("parameter constructor StateMachine");
     }

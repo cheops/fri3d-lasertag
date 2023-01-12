@@ -12,7 +12,7 @@ static const uint8_t HIT_DAMAGE = 30;
 static const uint8_t HIT_TIMEOUT = 5;
 static const uint8_t SHOT_AMMO = 1;
 
-static const uint8_t PRACTICINT_CHANNEL = 2;
+static const uint8_t PRACTICING_CHANNEL = 2;
 static const uint8_t PLAYING_CHANNEL = 3;
 static const uint8_t INVALID_CHANNEL = 15;
 

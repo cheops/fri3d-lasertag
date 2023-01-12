@@ -35,7 +35,7 @@ class FlagAndPlayer(Profile):
         self._hit_timeout = hit_timeout
         self._practicing_channel = practicing_channel
         self._playing_channel = playing_channel
-        self._game_id = 0
+        self._mqtt_game_id = 0
 
         self._mqtt_during_all = False
         self._mqtt_during_playing = False
@@ -151,7 +151,7 @@ class Flag(FlagAndPlayer):
             #self._shot_ammo = ble_msg.shot_ammo
             self._practicing_channel = ble_msg.practicing_channel
             self._playing_channel = ble_msg.playing_channel
-            self._game_id = ble_msg.game_id
+            self._mqtt_game_id = ble_msg.mqtt_game_id
             self._mqtt_during_playing = ble_msg.mqtt_during_playing
             self.set_new_event(PRESTART)
 
@@ -166,7 +166,7 @@ class Flag(FlagAndPlayer):
                 self._hit_damage = p.get('hit_damage', hit_damage)
                 self._hit_timeout = p.get('hit_timeout', hit_timeout)
                 self._playing_channel = p.get('playing_channel', playing_channel)
-                self._game_id = p.get('game_id', self._game_id)
+                self._mqtt_game_id = p.get('mqtt_game_id', self._mqtt_game_id)
                 self._mqtt_during_playing = p.get('mqtt_during_playing', False)
                 self.set_new_event(PRESTART)
 
@@ -218,7 +218,7 @@ class Flag(FlagAndPlayer):
             def get_remaining_seconds():
                 return self._remaining_seconds
 
-            t_mqtt = uasyncio.create_task(publish_mqtt_flag(self._team, self._game_id, get_health, get_remaining_seconds))
+            t_mqtt = uasyncio.create_task(publish_mqtt_flag(self._team, self._mqtt_game_id, get_health, get_remaining_seconds))
             self._current_state_tasks.append(t_mqtt)
 
     def _finishing(self):
@@ -339,7 +339,7 @@ class Player(FlagAndPlayer):
             self._shot_ammo = ble_msg.shot_ammo
             self._practicing_channel = ble_msg.practicing_channel
             self._playing_channel = ble_msg.playing_channel
-            self._game_id = ble_msg.game_id
+            self._mqtt_game_id = ble_msg.mqtt_game_id
             self._mqtt_during_playing = ble_msg.mqtt_during_playing
             self.set_new_event(PRESTART)
 
@@ -355,7 +355,7 @@ class Player(FlagAndPlayer):
                 self._hit_timeout = p.get('hit_timeout', hit_timeout)
                 self._shot_ammo = p.get('shot_ammo', shot_ammo)
                 self._playing_channel = p.get('playing_channel', playing_channel)
-                self._game_id = p.get('game_id', self._game_id)
+                self._mqtt_game_id = p.get('mqtt_game_id', self._mqtt_game_id)
                 self._mqtt_during_playing = p.get('mqtt_during_playing', False)
                 self.set_new_event(PRESTART)
 
@@ -419,7 +419,7 @@ class Player(FlagAndPlayer):
             def get_remaining_seconds():
                 return self._remaining_seconds
 
-            t_mqtt = uasyncio.create_task(publish_mqtt_player(self._team, self._game_id, get_health, get_hits, get_shots, get_remaining_seconds))
+            t_mqtt = uasyncio.create_task(publish_mqtt_player(self._team, self._mqtt_game_id, get_health, get_hits, get_shots, get_remaining_seconds))
             self._current_state_tasks.append(t_mqtt)
 
     def _finishing(self):

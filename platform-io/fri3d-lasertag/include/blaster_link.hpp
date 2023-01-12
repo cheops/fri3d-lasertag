@@ -179,7 +179,7 @@ public:
         }
     }
 
-    void print_deltas(Print *aSerial)
+    void print_deltas(Print* aSerial)
     {
         if (m_save_deltas)
         {
@@ -210,7 +210,7 @@ public:
         }
     }
 
-    void print_decoded(Print *aSerial)
+    void print_decoded(Print* aSerial)
     {
         if (m_save_decoded)
         {
@@ -640,7 +640,7 @@ private:
         pinMode(BLASTER_LINK_PIN, OUTPUT);
 
         // initialize esp32 rmt
-        rmt_obj_t *rmt_send = NULL;
+        rmt_obj_t* rmt_send = NULL;
         if ((rmt_send = rmtInit(BLASTER_LINK_PIN, RMT_TX_MODE, RMT_MEM_64)) == NULL)
         {
             Serial.println("send_to_blaster :: init sender failed");
