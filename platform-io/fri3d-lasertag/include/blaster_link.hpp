@@ -758,7 +758,7 @@ private:
         }
     }
 
-    static bool send_to_blaster_retry(DataPacket packet, uint8_t retries = 3)
+    static bool send_to_blaster_retry(DataPacket packet, uint8_t retries = 5)
     {
         uint8_t retryCount = 0;
         while (retryCount < retries)

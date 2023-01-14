@@ -2,7 +2,6 @@
 #define STATEMACHINE_HPP
 
 #include "Arduino.h"
-#include <map>
 
 class Model;
 class Event;
@@ -21,6 +20,8 @@ class State {
         }
 };
 
+static portMUX_TYPE stateMachine_model_event_spinlock = portMUX_INITIALIZER_UNLOCKED;
+
 class Model {
 public:
     Model() {
@@ -28,26 +29,25 @@ public:
     }
 
     void set_event(Event* ptr_event);
+    bool has_event();
     
     virtual Event* run(State* ptr_state);
-protected:
+private:
     Event* m_ptr_event;
 };
 
 class Event {
     public:
         Event(std::string name) : m_name(name) {}
+        
         void set_new_model(Model* model) {
-            m_kv["new_model"] = model;
+            m_new_model = model;
         }
         
         Model* clear_new_model() {
-            auto it = m_kv.find("new_model");
-            if (it != m_kv.end()) {
-                return it->second;
-            } else {
-                return nullptr;
-            }
+            Model* new_model = m_new_model;
+            m_new_model = nullptr;
+            return new_model;
         }
         
         bool equals(Event* otherEvent) {
@@ -56,21 +56,35 @@ class Event {
 
         std::string m_name;
     private:
-        std::map<std::string, Model*> m_kv;
+        Model* m_new_model;
 };
 
 Event* Model::run(State* ptr_state) {
     Serial.println("Model::run outside class");
-    while(m_ptr_event == nullptr) {
+    while(!has_event()) {
         Serial.println("no event -> sleeping");
         vTaskDelay(500/portTICK_PERIOD_MS);
     }
-    return m_ptr_event;    
+    taskENTER_CRITICAL(&stateMachine_model_event_spinlock);
+    Event* ptr_event = m_ptr_event; // store it
+    m_ptr_event = nullptr;          // clear it
+    taskEXIT_CRITICAL(&stateMachine_model_event_spinlock);
+    return ptr_event;               // return it
 }
 
 void Model::set_event(Event* ptr_event)  {
+    taskENTER_CRITICAL(&stateMachine_model_event_spinlock);
     Serial.printf("set event: %s\n", ptr_event->m_name.c_str());
     m_ptr_event = ptr_event;
+    taskEXIT_CRITICAL(&stateMachine_model_event_spinlock);
+}
+
+bool Model::has_event() {
+    taskENTER_CRITICAL(&stateMachine_model_event_spinlock);
+    bool hasEvent = m_ptr_event != nullptr;
+    taskEXIT_CRITICAL(&stateMachine_model_event_spinlock);
+
+    return hasEvent;
 }
 
 class Transition {
@@ -98,6 +112,7 @@ public:
             Event* ptr_new_event = m_ptr_model->run(m_ptr_state);
             Serial.printf("model run finished, new_event: %s\n", ptr_new_event->m_name.c_str());
 
+            bool found = false;
             for (uint8_t i = 0; i < m_transitions_size; i++) {
 
                 if (m_ptr_transitions[i].m_ptr_trigger->equals(ptr_new_event) && m_ptr_transitions[i].m_ptr_source->equals(m_ptr_state)) {
@@ -113,9 +128,12 @@ public:
                         m_ptr_model = new_model;
                     }
 
+                    found = true;
+
                     break;
                 }
             }
+            Serial.printf("No transition found for new_event: %s\n", ptr_new_event->m_name.c_str());
         }
     }
 

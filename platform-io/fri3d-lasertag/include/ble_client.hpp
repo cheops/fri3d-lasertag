@@ -153,7 +153,20 @@ public:
         m_pBLEScan->setInterval(120); //ms
         m_pBLEScan->setWindow(30); // ms
 
+        m_should_stop_listening = false;
+
         start_scan();
+    }
+
+    void stop_listen() {
+        m_should_stop_listening = true;
+        if (listen_type_found()) {
+            reset();
+        }
+    }
+
+    bool should_stop_listening() {
+        return m_should_stop_listening;
     }
 
     bool is_listening() {
@@ -190,11 +203,12 @@ public:
 private:
     static const int scanTime = 2; //In seconds
     bool m_listening = false;
+    bool m_should_stop_listening = false;
     BLEScan* m_pBLEScan = NULL;
     BleMessage m_bleMessage = BleMessage();
     BleMessageType m_listen_type = eBleMessageTypeNone;
 
-    void stop_listen() {
+    void stop_scan() {
         m_pBLEScan->clearResults();   // delete results fromBLEScan buffer to release memory
         m_pBLEScan->stop();
 
@@ -223,7 +237,7 @@ private:
             m_bleMessage = BleMessage(man_spec_data);
             taskEXIT_CRITICAL(&bleClient_message_spinlock);
 
-            stop_listen();
+            stop_scan();
         }
     }
 };
@@ -233,9 +247,14 @@ BleClient bleClient = BleClient();
 void scanCompleteCB(BLEScanResults scanResults) {
     // scan completed, but nothing found
     if (!bleClient.listen_type_found()) {
-        //sleep a bit to go easy on ble
-        delay(1000);
-        bleClient.start_scan();
+        if (!bleClient.should_stop_listening()) {
+            //sleep a bit to go easy on ble
+            delay(1000);
+            bleClient.start_scan();
+        } else {
+            Serial.println("bleClient m_should_stop_listening handled.");
+            bleClient.reset();
+        }
     }
 }
 

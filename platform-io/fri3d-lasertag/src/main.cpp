@@ -1,8 +1,8 @@
 #include <Arduino.h>
 
+#include <esp_task_wdt.h>
+
 #include "mvp.hpp"
-#include "ir_receive.hpp"
-#include "ble_client.hpp"
 #include "profile_mvp.hpp"
 
 
@@ -13,102 +13,51 @@
 
 // to read https://microcontrollerslab.com/category/freertos-arduino-tutorial/
 
-StateMachine mvp_statemachine = StateMachine(&FLAG_BUZZ_PROFILE, TRANSITIONS_MVP, TRANSITIONS_COUNT, &BOOTING);
+StateMachine mvp_statemachine = StateMachine(&PLAYER_BUZZ_PROFILE, TRANSITIONS_MVP, TRANSITIONS_COUNT, &PRACTICING);
 
+/**
+ *starting the statemachine in another task gives a crash when bleClient is accessed
 
-int64_t startCountdownMicros = esp_timer_get_time();
-int64_t lastMicrosCountdown = startCountdownMicros;
-const uint32_t countdownInterval = 1000000; // 1 second
-uint16_t playing_time = PLAYING_TIME;
+void task_statemachine(void* pvParameter) {
+    StateMachine* thiz = reinterpret_cast<StateMachine*>(pvParameter);
 
-int64_t startBlasterSendMicros = esp_timer_get_time();
-int64_t lastMicrosBlasterSend = startBlasterSendMicros;
-const uint32_t blasterSendInterval = 5000000; // 5 seconds
-uint8_t team = eNoTeam;
-uint8_t brightness = 0;
-bool blaster_set_settings_supported = true;
+    // this keeps running forever
+    thiz->start();
 
+    Serial.println("our Statemachine has crashed.");
+
+    vTaskDelete(NULL);
+}
 void setup(void)
 {
     Serial.begin(115200);
     delay(500);
 
-    blasterLink.start_listen();
-    //blasterLink.set_settings(true); // mute the blaster
+    TaskHandle_t* ptr_task_statemachine;
+    const int taskCore = tskNO_AFFINITY;
+    const int taskPriority = tskIDLE_PRIORITY;
+    xTaskCreatePinnedToCore(
+        task_statemachine,         //Function to implement the task 
+        "task_statemachine",       //Name of the task
+        5000,                      //Stack size in words 
+        &mvp_statemachine,         //Task input parameter 
+        taskPriority,              //Priority of the task 
+        ptr_task_statemachine,     //Task handle.
+        taskCore);                 //Core where the task should run
+}
+*/
 
-    badgeIrReceiver.start_listen();
-
-    //bleClient.start_listen(eBleMessageTypePrestart);
+void setup(void)
+{
+    Serial.begin(115200);
+    delay(1000); // wait for blaster to start
 
     mvp_statemachine.start();
     // void loop() is never reached, since statemachine keeps running forever
-    // should be called in StateMachine loop
-    // blasterLink.process_buffer()
-    // badgeIrReceiver.receive_ir_data();
-    
 }
 
 void loop()
 {
-    Serial.println("We should never get here.");
+    // nothing is done here
     delay(1000);
-
-    /*
-    blasterLink.process_buffer();
-    
-    // process received blaster messages
-    while (blasterLink.message_available()) {
-        DataPacket message = blasterLink.pop_message();
-        Serial.print("-Blaster_link: ");
-        message.print(&Serial);
-    }
-
-
-    badgeIrReceiver.receive_ir_data();
-
-    // process received ir messages
-    while (badgeIrReceiver.message_available()) {
-        DataPacket message = badgeIrReceiver.pop_message();
-        Serial.print("-Ir_link: ");
-        message.print(&Serial);
-    }
-
-
-    if (bleClient.listen_type_found()) {
-        BleMessage ble_message = bleClient.get_ble_message();
-        ble_message.print(&Serial);
-        bleClient.reset();
-    } else {
-        if (!bleClient.is_listening()) {
-            delay(1000);
-            bleClient.start_listen(eBleMessageTypePrestart);
-        }
-    }
-
-
-    // update blaster settings
-    startBlasterSendMicros = esp_timer_get_time();
-    if (startBlasterSendMicros - lastMicrosBlasterSend >= blasterSendInterval)
-    {
-        lastMicrosBlasterSend = startBlasterSendMicros;
-
-        bool success = blasterLink.set_channel(2);
-        Serial.printf("Set channel: %x\n", success);
-
-        if (blaster_set_settings_supported) { // only try set_settings once, needs blaster firmware update
-            success = blasterLink.set_settings(true, brightness);
-            Serial.printf("Set settings: %x\n", success);
-            brightness += 1;
-            if (brightness >= 8) brightness = 0;
-            if (!success) blaster_set_settings_supported = false;
-        }
-
-        success = blasterLink.set_team(TeamColor(team));
-        Serial.printf("Set team: %x\n", success);
-        team += 1;
-        if (team >= 16) team = 0;
-    }
-
-    */
-    
 }
