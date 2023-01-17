@@ -81,11 +81,11 @@ std::string encodeManufacturerData(
     manu_data[5] = (playing_time >> 8) & 0xFF;
     manu_data[6] = playing_time & 0xFF;
 
-    manu_data[7] = hit_damage & 0x64; // limit to 0-100
+    manu_data[7] = _min(hit_damage, 100); // limit to 0-100
 
     manu_data[8] = hit_timeout;
 
-    manu_data[9] = shot_ammo & 0x64; // limit to 0-100
+    manu_data[9] = _min(shot_ammo, 100); // limit to 0-100
 
     manu_data[10] = ( (practicing_channel << 4) & 0xF0 ) | ( playing_channel & 0x0F );
 
