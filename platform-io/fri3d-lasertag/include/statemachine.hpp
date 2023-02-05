@@ -133,7 +133,9 @@ public:
                     break;
                 }
             }
-            Serial.printf("No transition found for new_event: %s\n", ptr_new_event->m_name.c_str());
+            if (!found) {
+                Serial.printf("No transition found for new_event: %s\n", ptr_new_event->m_name.c_str());
+            }
         }
     }
 

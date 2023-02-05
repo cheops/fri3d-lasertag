@@ -62,7 +62,7 @@ public:
     }
 
     uint16_t get_playing_time() {
-        return m_man_spec_data[3]*256 + 
+        return m_man_spec_data[3]*256 +
                m_man_spec_data[4];
     }
 
@@ -99,12 +99,13 @@ public:
 
     void print(Print* aSerial) {
         aSerial->print("BleMessage: ");
-        aSerial->print("type:");
+        print_man_spec_data(aSerial);
+        aSerial->print(", type:");
         aSerial->print(get_message_type());
         aSerial->print(", hiding_time:");
         aSerial->print(get_hiding_time());
         aSerial->print(", playing_time:");
-        aSerial->print(get_playing_channel());
+        aSerial->print(get_playing_time());
         aSerial->print(", hit_damage:");
         aSerial->print(get_hit_damage());
         aSerial->print(", hit_timeout:");
@@ -124,6 +125,19 @@ public:
 
 private:
     std::string m_man_spec_data;
+
+    void print_man_spec_data(Print* aSerial) {
+        for (int i = 0; i < m_man_spec_data.size(); i++)
+        {
+            char str[3];
+            sprintf(str, "%02X", (int)m_man_spec_data[i]);
+            aSerial->print(str);
+            if (i< m_man_spec_data.size()-1) {
+                aSerial->print(":");
+            }
+        }
+    }
+
 };
 
 static portMUX_TYPE bleClient_listening_spinlock = portMUX_INITIALIZER_UNLOCKED;

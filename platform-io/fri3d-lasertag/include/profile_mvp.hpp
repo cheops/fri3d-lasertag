@@ -47,16 +47,21 @@ public:
         }
 
         stop_tasks();
+        vTaskDelay( 500 /  portTICK_PERIOD_MS );
 
         return Model::run(m_ptr_state);
     }
 
-    void add_task(TaskHandle_t* ptr_task_handle) {
+    TaskHandle_t* get_task_handle() {
         if (m_task_next_free_handle >= task_max_handles) {
-            Serial.printf("FlagAndPlayer::add_task Error, reached task_max_handles: %d\n", task_max_handles);
+            Serial.printf("FlagAndPlayer::get_task_handle Error, reached task_max_handles: %d\n", task_max_handles);
+            return NULL;
         } else {
-            m_task_handles[m_task_next_free_handle] = ptr_task_handle;
+            m_task_handles[m_task_next_free_handle] = TaskHandle_t();
+            TaskHandle_t* ptr_task_handle = &m_task_handles[m_task_next_free_handle];
             m_task_next_free_handle += 1;
+
+            return ptr_task_handle;
         }
     }
 
@@ -70,9 +75,13 @@ public:
                     xResult = xTaskNotifyGive( m_task_handles[i]);
                     if ( xResult == pdFAIL) {
                         // failed to notify the task, 
-                        Serial.printf("Failed notifying task with STOP_BIT, killing it. index: %d\n", i);
+                        Serial.printf("Failed notifying task, killing it. index: %d\n", i);
                         vTaskDelete(m_task_handles[i]);
+                    } else if ( xResult == pdPASS ) {
+                        Serial.printf("Successfully notified task, index: %d\n", i);
                     }
+                } else {
+                    Serial.printf("Failed notifying task, NULL ptr. index: %d\n", i);
                 }
             }
             vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -103,7 +112,7 @@ protected:
     
     static const uint8_t task_max_handles = 10;
     uint8_t m_task_next_free_handle = 0;
-    TaskHandle_t* m_task_handles[task_max_handles];
+    TaskHandle_t m_task_handles[task_max_handles];
 
     void booting() {
         Serial.println("FlagAndPlayer::booting");
@@ -136,7 +145,7 @@ protected:
         m_display->draw_upper_left(m_health);
 
         
-        TaskHandle_t* ptr_task_ble_handle;
+        TaskHandle_t* ptr_task_ble_handle = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_ble_listen,     //Function to implement the task 
             "task_ble_listen",         //Name of the task
@@ -145,16 +154,13 @@ protected:
             taskPriority,              //Priority of the task 
             ptr_task_ble_handle,       //Task handle.
             taskCore);                 //Core where the task should run
-
-        add_task(ptr_task_ble_handle);
-        
     }
 
     void hiding() {
         Serial.println("FlagAndPlayer::hiding");
         blasterLink.set_trigger_action(false, false, false, true); // disable trigger
 
-        TaskHandle_t* ptr_task_countdown_handle;
+        TaskHandle_t* ptr_task_countdown_handle = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_countdown,      //Function to implement the task 
             "task_countdown",          //Name of the task
@@ -163,8 +169,6 @@ protected:
             taskPriority,              //Priority of the task 
             ptr_task_countdown_handle, //Task handle.
             taskCore);                 //Core where the task should run
-
-        add_task(ptr_task_countdown_handle);
     }
 
     virtual void playing() {
@@ -172,7 +176,7 @@ protected:
         blasterLink.set_channel(m_playing_channel);
 
         // playing loop
-        TaskHandle_t* ptr_task_countdown_handle;
+        TaskHandle_t* ptr_task_countdown_handle = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_countdown,      //Function to implement the task 
             "task_countdown",          //Name of the task
@@ -181,8 +185,6 @@ protected:
             taskPriority,              //Priority of the task 
             ptr_task_countdown_handle, //Task handle.
             taskCore);                 //Core where the task should run
-
-        add_task(ptr_task_countdown_handle);
     }
 
     void finishing() {
@@ -192,7 +194,7 @@ protected:
 
         m_display->draw_middle(m_current_playing_time);
 
-        TaskHandle_t* ptr_task_ble_handle;
+        TaskHandle_t* ptr_task_ble_handle = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_ble_listen,     //Function to implement the task 
             "task_ble_listen",         //Name of the task
@@ -201,8 +203,6 @@ protected:
             taskPriority,              //Priority of the task 
             ptr_task_ble_handle,       //Task handle.
             taskCore);                 //Core where the task should run
-
-        add_task(ptr_task_ble_handle);
     }
 
     static void task_ble_listen(void* pvParameter) {
@@ -242,7 +242,6 @@ protected:
                 thiz->m_mqtt_game_id = ble_message.get_mqtt_game_id();
                 thiz->m_mqtt_during_playing = ble_message.get_mqtt_during_playing();
 
-                // TODO the ble_message has funny values for shot_ammo
                 ble_message.print(&Serial);
 
                 Serial.printf("Setting event %s\n", ptr_event->m_name.c_str());
@@ -324,7 +323,6 @@ protected:
 
         } // while(should_stop)
 
-        vTaskDelay(200/portTICK_PERIOD_MS);
         vTaskDelete(NULL);
         
     } // task_countdown
@@ -345,7 +343,7 @@ protected:
         Serial.println("Flag::practicing");
         reinterpret_cast<DisplayFlag*>(m_display)->init();
 
-        TaskHandle_t* ptr_task_receive_ir;
+        TaskHandle_t* ptr_task_receive_ir = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_receive_ir,  //Function to implement the task 
             "task_receive_ir",      //Name of the task
@@ -354,8 +352,6 @@ protected:
             taskPriority,           //Priority of the task 
             ptr_task_receive_ir,    //Task handle.
             taskCore);              //Core where the task should run
-        
-        add_task(ptr_task_receive_ir);
 
         vTaskDelay(10 / portTICK_PERIOD_MS);
 
@@ -367,7 +363,7 @@ protected:
     void playing() override {
         Serial.println("Flag::playing");
 
-        TaskHandle_t* ptr_task_receive_ir;
+        TaskHandle_t* ptr_task_receive_ir = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_receive_ir,  //Function to implement the task 
             "task_receive_ir",      //Name of the task
@@ -376,8 +372,6 @@ protected:
             taskPriority,           //Priority of the task 
             ptr_task_receive_ir,    //Task handle.
             taskCore);              //Core where the task should run
-        
-        add_task(ptr_task_receive_ir);
         
         FlagAndPlayer::playing();
     }
@@ -399,12 +393,19 @@ protected:
                 // incoming enemy fire after hit_timeout of previous shot
                 if (message.get_command() == eCommandShoot && 
                     message.get_team() != thiz->m_team.team_color() &&
-                    thiz->m_last_hit_time + thiz->m_hit_timeout*1000000 < message.get_time_micros()) {
+                    thiz->m_last_hit_time + thiz->m_hit_timeout*1000000 < message.get_time_micros())
+                    {
 
                     thiz->m_health -= thiz->m_hit_damage;
                     thiz->m_last_hit_time = message.get_time_micros();
-                }
+                  
 
+                    // TODO flag hit animation
+
+                    if (thiz->m_health <= 0) {
+                        thiz->set_event(&DEAD);
+                    }
+                }
             }
 
             // check if notified
@@ -420,7 +421,6 @@ protected:
 
         badgeIrReceiver.stop_listen();
 
-        vTaskDelay(200/portTICK_PERIOD_MS);
         vTaskDelete(NULL);
         
     } // task_receive_ir
@@ -443,7 +443,7 @@ protected:
         m_ammo = 100;
         reinterpret_cast<DisplayPlayer*>(m_display)->draw_upper_right(m_ammo);
 
-        TaskHandle_t* ptr_task_receive_ir;
+        TaskHandle_t* ptr_task_receive_ir = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_receive_ir,  //Function to implement the task 
             "task_receive_ir",      //Name of the task
@@ -453,9 +453,7 @@ protected:
             ptr_task_receive_ir,    //Task handle.
             taskCore);              //Core where the task should run
         
-        add_task(ptr_task_receive_ir);
-
-        TaskHandle_t* ptr_task_blaster_link;
+        TaskHandle_t* ptr_task_blaster_link = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_blaster_link, //Function to implement the task 
             "task_blaster_link",     //Name of the task
@@ -464,8 +462,6 @@ protected:
             taskPriority,            //Priority of the task 
             ptr_task_blaster_link,   //Task handle.
             taskCore);               //Core where the task should run
-        
-        add_task(ptr_task_blaster_link);
 
         vTaskDelay(10 / portTICK_PERIOD_MS);
 
@@ -477,7 +473,7 @@ protected:
     void playing() override {
         Serial.println("Player::playing");
 
-        TaskHandle_t* ptr_task_receive_ir;
+        TaskHandle_t* ptr_task_receive_ir = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_receive_ir,  //Function to implement the task 
             "task_receive_ir",      //Name of the task
@@ -487,9 +483,8 @@ protected:
             ptr_task_receive_ir,    //Task handle.
             taskCore);              //Core where the task should run
         
-        add_task(ptr_task_receive_ir);
 
-        TaskHandle_t* ptr_task_blaster_link;
+        TaskHandle_t* ptr_task_blaster_link = get_task_handle();
         xTaskCreatePinnedToCore(
             this->task_blaster_link, //Function to implement the task 
             "task_blaster_link",     //Name of the task
@@ -498,10 +493,9 @@ protected:
             taskPriority,            //Priority of the task 
             ptr_task_blaster_link,   //Task handle.
             taskCore);               //Core where the task should run
-        
-        add_task(ptr_task_blaster_link);
 
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        Serial.println("Player::playing wait for tasks to get started, before enabling trigger.");
+        vTaskDelay(100 / portTICK_PERIOD_MS);
 
         blasterLink.set_trigger_action(false, false, false, false); // enable trigger
 
@@ -516,7 +510,7 @@ protected:
         while(!should_stop) {
             badgeIrReceiver.receive_ir_data();
 
-            while (badgeIrReceiver.message_available()) {
+            while (!should_stop && badgeIrReceiver.message_available()) {
                 DataPacket message = badgeIrReceiver.pop_message();
 
                 Serial.print("-Ir_link: ");
@@ -529,6 +523,10 @@ protected:
 
                     thiz->m_health -= thiz->m_hit_damage;
                     thiz->m_last_hit_time = message.get_time_micros();
+
+                    if(thiz->m_health <= 0) {
+                        thiz->set_event(&DEAD);
+                    }
                 }
 
             }
@@ -546,7 +544,6 @@ protected:
 
         badgeIrReceiver.stop_listen();
 
-        vTaskDelay(200/portTICK_PERIOD_MS);
         vTaskDelete(NULL);
         
     } // task_receive_ir
@@ -559,7 +556,7 @@ protected:
         while(!should_stop) {
             blasterLink.process_buffer();
             
-            while (blasterLink.message_available()) {
+            while (!should_stop && blasterLink.message_available()) {
                 DataPacket message = blasterLink.pop_message();
 
                 Serial.print("-Blaster_link: ");
@@ -572,6 +569,11 @@ protected:
 
                     thiz->m_health -= thiz->m_hit_damage;
                     thiz->m_last_hit_time = message.get_time_micros();
+
+                    if(thiz->m_health <= 0) {
+                        thiz->set_event(&DEAD);
+                    }
+
                 } else
                 if (message.get_command() == eCommandShoot && 
                     message.get_team() == thiz->m_team.team_color()) {
@@ -582,7 +584,7 @@ protected:
 
                     // start ammo reloading animation
                     if (thiz->m_ammo <= 0) {
-                        // blaster shoot animation is still running
+                        // blaster shoot animation is still running, so delay a little bit
                         // try to disable as soon as possible, before trigger is pressed on blaster again
                         // if waiting too long a new eCommandShoot action might be received
                         vTaskDelay(400/portTICK_PERIOD_MS);
@@ -608,7 +610,7 @@ protected:
 
                         int64_t start_time = esp_timer_get_time();
                         int64_t last_reload_time = start_time;
-                        while(reloading) {
+                        while(!should_stop && reloading) {
                             int64_t current_time = esp_timer_get_time();
                             if (current_time - last_reload_time > reload_time_interval_us) {
                                 uint8_t new_ammo = uint8_t( (current_time - start_time) / reload_time_interval_us );
@@ -666,7 +668,6 @@ protected:
 
         blasterLink.stop_listen();
 
-        vTaskDelay(200/portTICK_PERIOD_MS);
         vTaskDelete(NULL);
         
     } // task_blaster_link
