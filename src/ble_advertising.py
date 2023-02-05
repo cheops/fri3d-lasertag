@@ -22,7 +22,7 @@ _ADV_TYPE_MANUFACTURER_SPECIFIC_DATA = const(0xff)
 
 
 # Generate a payload to be passed to gap_advertise(adv_data=...).
-def advertising_payload(limited_disc=False, br_edr=False, name=None, services=None, appearance=None, company_id=None, manufacturer_specific_data=None):
+def advertising_payload(limited_disc=False, br_edr=False, name=None, services=None, appearance=None, company_id=None, man_spec_data=None):
     payload = bytearray()
 
     def _append(adv_type, value):
@@ -44,8 +44,11 @@ def advertising_payload(limited_disc=False, br_edr=False, name=None, services=No
             elif len(b) == 16:
                 _append(_ADV_TYPE_UUID128_COMPLETE, b)
 
-    if company_id and manufacturer_specific_data:
-        _append(_ADV_TYPE_MANUFACTURER_SPECIFIC_DATA, company_id+manufacturer_specific_data)
+    if company_id and man_spec_data:
+        # company_id should be 2 bytes long
+        # man_spec_data also in bytes
+        data = company_id + man_spec_data
+        _append(_ADV_TYPE_MANUFACTURER_SPECIFIC_DATA, data)
 
     if appearance:
         # See org.bluetooth.characteristic.gap.appearance.xml
@@ -94,7 +97,7 @@ def demo():
     print(decode_name(payload))
     print(decode_services(payload))
 
-    payload_2 = advertising_payload(company_id=0xfff, manufacturer_specific_data=0xdeadbeef)
+    payload_2 = advertising_payload(company_id=0xffff, manufacturer_specific_data=0xdeadbeef)
     print(payload_2)
     print(decode_man_spec_data(payload_2))
 
