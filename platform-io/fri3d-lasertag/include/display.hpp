@@ -10,11 +10,38 @@
 Badge2020_TFT tft;
 
 
+
+/**
+ * @brief Convert RGB888 values to RGB565
+ * 
+ * @param R input 8 bits of Red
+ * @param G input 8 bits of Green
+ * @param B input 8 bits of Blue
+ * @return uint16_t Red 5 bits - G 6 bits - Blue 5 bits
+ */
 uint16_t ConvertRGB(const uint8_t &R, const uint8_t &G, const uint8_t &B)
 {
   return ( ((R & 0xF8) << 8) | ((G & 0xFC) << 3) | (B >> 3) );
 }
 
+
+/*
+
+screen layout = 240 x 240 pixels
+border width = 8 pixels
+spacer between text and border = 6 pixels
+
++---------+--------+
+| Health  | Ammo   |
+|  100%   | 100%   |
++---------+--------+
+|    countdown     |
+|       0:00       |
++------------------+
+|    player buzz   |
++------------------+
+
+*/
 class Display
 {
 public:
@@ -37,7 +64,7 @@ public:
   void draw_upper_left(const uint8_t health)
   {
     tft.setCursor(m_width + 18, 37);
-    tft.setTextColor(m_color);
+    tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(3);
     tft.print(health);
   }
@@ -47,7 +74,7 @@ public:
     // middle bg_color
     tft.fillRect(m_width, 82 + int(m_width / 2), 240 - m_width * 2, 109, m_bg_color);
     tft.setCursor(8+38, 92);
-    tft.setTextColor(m_color);
+    tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(3);
     tft.print(txt.c_str());
   }
@@ -91,7 +118,7 @@ protected:
     // upper left bg_color
     tft.fillRect(m_width, m_width, 120 - m_width - int(m_width / 2), 82 - int(1.5 * m_width), m_bg_color);
     tft.setCursor(8+4, 14);
-    tft.setTextColor(m_color);
+    tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(2);
     tft.print("Health%");
   }
@@ -105,6 +132,19 @@ protected:
 };
 
 
+/*
+
++---------+--------+
+| Health% | Ammo%  |
+|  100    | 100    |
++---------+--------+
+|    countdown     |
+|       0:00       |
++------------------+
+|    player buzz   |
++------------------+
+
+*/
 class DisplayPlayer: public Display
 {
 public:
@@ -121,7 +161,7 @@ public:
   void draw_upper_right(const uint8_t ammo)
   {
     tft.setCursor(120 + int(m_width / 2) + 18, 37);
-    tft.setTextColor(m_color);
+    tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(3);
     tft.print(ammo);
   }
@@ -130,7 +170,7 @@ protected:
     // upper right bg_color
     tft.fillRect(120 + int(m_width / 2), m_width, 120 - m_width - int(m_width / 2), 82 - int(1.5 * m_width), m_bg_color);
     tft.setCursor(120 + 4 + 6, 14);
-    tft.setTextColor(m_color);
+    tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(2);
     tft.print("Ammo%");
   }
@@ -139,7 +179,7 @@ protected:
   {
     Display::draw_static_bottom();
     tft.setCursor(8 + 50, 209);
-    tft.setTextColor(m_color);
+    tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(2);
     std::string txt = "Player " + m_team_name;
     tft.print(txt.c_str());
@@ -147,6 +187,19 @@ protected:
 };
 
 
+/*
+
++---------+--------+
+| Health% | Ammo%  |
+|  100    | 100    |
++---------+--------+
+|    countdown     |
+|       0:00       |
++------------------+
+|    flag buzz     |
++------------------+
+
+*/
 class DisplayFlag: public Display
 {
 public:
@@ -170,7 +223,7 @@ protected:
   {
     Display::draw_static_bottom();
     tft.setCursor(8 + 50, 209);
-    tft.setTextColor(m_color);
+    tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(2);
     std::string txt = "Flag " + m_team_name;
     tft.print(txt.c_str());
