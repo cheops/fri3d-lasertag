@@ -396,9 +396,9 @@ protected:
                     thiz->m_last_hit_time + thiz->m_hit_timeout*1000000 < message.get_time_micros())
                     {
 
-                    thiz->m_health -= thiz->m_hit_damage;
                     thiz->m_last_hit_time = message.get_time_micros();
-                  
+                    thiz->m_health -= thiz->m_hit_damage;
+                    reinterpret_cast<DisplayFlag*>(thiz->m_display)->draw_upper_left(thiz->m_health);
 
                     // TODO flag hit animation
 
@@ -567,8 +567,9 @@ protected:
                     message.get_team() != thiz->m_team.team_color() &&
                     thiz->m_last_hit_time + thiz->m_hit_timeout*1000000 < message.get_time_micros()) {
 
-                    thiz->m_health -= thiz->m_hit_damage;
                     thiz->m_last_hit_time = message.get_time_micros();
+                    thiz->m_health -= thiz->m_hit_damage;
+                    reinterpret_cast<DisplayPlayer*>(thiz->m_display)->draw_upper_left(thiz->m_health);
 
                     if(thiz->m_health <= 0) {
                         thiz->set_event(&DEAD);
