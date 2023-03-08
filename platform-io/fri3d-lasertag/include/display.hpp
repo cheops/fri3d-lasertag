@@ -47,7 +47,7 @@ class Display
 public:
   Display() {}
   Display(const Team &team) {
-    m_color = team.color();
+    m_color = team.screen_color();
     m_team_name = team.name();
   }
   
@@ -66,7 +66,7 @@ public:
     tft.setCursor(m_width + 18, 37);
     tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(3);
-    tft.print(health);
+    tft.printf("%3d", health);
   }
 
   void draw_static_middle(const std::string txt)
@@ -163,7 +163,7 @@ public:
     tft.setCursor(120 + int(m_width / 2) + 18, 37);
     tft.setTextColor(m_color, m_bg_color);
     tft.setTextSize(3);
-    tft.print(ammo);
+    tft.printf("%3d", ammo);
   }
 protected:
   void draw_static_upper_right() override {

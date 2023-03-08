@@ -13,14 +13,14 @@
 #include "ir_receive.hpp"
 #include <Adafruit_NeoPixel.h>
 
-#define LED_PIN    2
-#define LED_COUNT  5
+static const uint8_t LED_PIN = 2;
+static const uint8_t LED_COUNT = 5;
 
-const char* flag_type_name = "Flag";
-const char* player_type_name = "Player";
+static const char* flag_type_name = "Flag";
+static const char* player_type_name = "Player";
 
-const int taskCore = tskNO_AFFINITY;
-const int taskPriority = tskIDLE_PRIORITY;
+static const int taskCore = tskNO_AFFINITY;
+static const int taskPriority = tskIDLE_PRIORITY + 1;
 
 class FlagAndPlayer : public Profile, public Model {
 public:
@@ -96,7 +96,7 @@ protected:
     Display* m_display;
     State* m_ptr_state;
 
-    uint8_t m_health;
+    int8_t m_health;
     int64_t m_last_hit_time;
 
     uint16_t m_hiding_time = HIDING_TIME;
@@ -107,6 +107,7 @@ protected:
     uint8_t m_shot_ammo = SHOT_AMMO;
     uint8_t m_practicing_channel = PRACTICING_CHANNEL;
     uint8_t m_playing_channel = PLAYING_CHANNEL;
+    uint8_t m_current_channel = PRACTICING_CHANNEL;
     uint32_t m_mqtt_game_id;
     bool m_mqtt_during_playing;
     
@@ -137,8 +138,10 @@ protected:
 
     virtual void practicing() {
         Serial.println("FlagAndPlayer::practicing");
+        m_current_channel = m_practicing_channel;
         blasterLink.set_team(m_team.team_color());
-        blasterLink.set_channel(m_practicing_channel);
+        blasterLink.set_channel(m_current_channel);
+
 
         m_display->draw_static_middle(m_ptr_state->m_name);
         m_health = 100;
@@ -173,7 +176,8 @@ protected:
 
     virtual void playing() {
         Serial.println("FlagAndPlayer::_playing");
-        blasterLink.set_channel(m_playing_channel);
+        m_current_channel = m_playing_channel;
+        blasterLink.set_channel(m_current_channel);
 
         // playing loop
         TaskHandle_t* ptr_task_countdown_handle = get_task_handle();
@@ -189,7 +193,8 @@ protected:
 
     void finishing() {
         Serial.println("FlagAndPlayer::_finishing");
-        blasterLink.set_channel(INVALID_CHANNEL);
+        m_current_channel = INVALID_CHANNEL;
+        blasterLink.set_channel(m_current_channel);
         blasterLink.set_trigger_action(false, false, false, true); // disable trigger
 
         m_display->draw_middle(m_current_playing_time);
@@ -392,15 +397,54 @@ protected:
 
                 // incoming enemy fire after hit_timeout of previous shot
                 if (message.get_command() == eCommandShoot && 
+                    message.get_parameter() == thiz->m_current_channel &&
                     message.get_team() != thiz->m_team.team_color() &&
                     thiz->m_last_hit_time + thiz->m_hit_timeout*1000000 < message.get_time_micros())
                     {
 
                     thiz->m_last_hit_time = message.get_time_micros();
                     thiz->m_health -= thiz->m_hit_damage;
+                    if ( thiz->m_health < 0 ) {
+                        thiz->m_health = 0;
+                    }
                     reinterpret_cast<DisplayFlag*>(thiz->m_display)->draw_upper_left(thiz->m_health);
 
-                    // TODO flag hit animation
+                    // flag hit animation
+                    bool hit_animation = true;
+                    const uint8_t total_hit_animation_time_seconds = 3;
+                    const uint8_t hit_animation_time_steps = 100; // this means leds 50 times on, 50 times off
+                    const int64_t hit_animation_time_interval_us = total_hit_animation_time_seconds * 1000000 / hit_animation_time_steps;
+
+                    Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+                    strip.begin();
+                    strip.clear();
+                    strip.show();
+                    strip.setBrightness(50);
+
+                    int64_t start_hit_animation_time = esp_timer_get_time();
+                    int64_t last_hit_animation_time = start_hit_animation_time;
+
+                    uint8_t step_count = 0;
+                    while(!should_stop && hit_animation) {
+                        int64_t current_time = esp_timer_get_time();
+                        if (current_time - last_hit_animation_time > hit_animation_time_interval_us) {
+
+                            if (step_count % 2 == 0) {
+                                strip.fill(thiz->m_team.led_color());
+                            } else {
+                                strip.clear();
+                            }
+                            strip.show();
+                            step_count += 1;
+                            if (step_count >= hit_animation_time_steps) {
+                                hit_animation = false;
+                            }
+
+                            last_hit_animation_time = esp_timer_get_time();
+                        }
+                        vTaskDelay(hit_animation_time_interval_us / 1000 / 4 / portTICK_PERIOD_MS);
+                    }
+                    // end flag hit animation
 
                     if (thiz->m_health <= 0) {
                         thiz->set_event(&DEAD);
@@ -435,7 +479,7 @@ public:
     }
 
 protected:
-    uint8_t m_ammo;
+    int8_t m_ammo;
 
     void practicing() {
         Serial.println("Player::practicing");
@@ -518,10 +562,14 @@ protected:
 
                 // incoming enemy fire after hit_timeout of previous shot
                 if (message.get_command() == eCommandShoot && 
+                    message.get_parameter() == thiz->m_current_channel &&
                     message.get_team() != thiz->m_team.team_color() &&
-                    thiz->m_last_hit_time + thiz->m_hit_timeout*1000000 < message.get_time_micros()) {
-
+                    thiz->m_last_hit_time + thiz->m_hit_timeout*1000000 < message.get_time_micros()) 
+                {
                     thiz->m_health -= thiz->m_hit_damage;
+                    if ( thiz->m_health < 0 ) {
+                        thiz->m_health = 0;
+                    }
                     thiz->m_last_hit_time = message.get_time_micros();
 
                     if(thiz->m_health <= 0) {
@@ -569,6 +617,9 @@ protected:
 
                     thiz->m_last_hit_time = message.get_time_micros();
                     thiz->m_health -= thiz->m_hit_damage;
+                    if ( thiz->m_health < 0 ) {
+                        thiz->m_health = 0;
+                    }
                     reinterpret_cast<DisplayPlayer*>(thiz->m_display)->draw_upper_left(thiz->m_health);
 
                     if(thiz->m_health <= 0) {
@@ -580,6 +631,9 @@ protected:
                     message.get_team() == thiz->m_team.team_color()) {
 
                     thiz->m_ammo -= thiz->m_shot_ammo;
+                    if ( thiz->m_ammo < 0 ) {
+                        thiz->m_ammo = 0;
+                    }
                     reinterpret_cast<DisplayPlayer*>(thiz->m_display)->draw_upper_right(thiz->m_ammo);
                     Serial.printf("Shoot ==> new_ammo: %d\n", thiz->m_ammo);
 
@@ -591,12 +645,12 @@ protected:
                         vTaskDelay(400/portTICK_PERIOD_MS);
                         blasterLink.set_trigger_action(false, false, false, true); // disable shooting
 
-                        uint8_t total_reload_time_seconds = 5;
-                        uint8_t total_reload_time_steps = 100;
-                        int64_t reload_time_interval_us = total_reload_time_seconds * 1000000 / total_reload_time_steps;
+                        const uint8_t total_reload_time_seconds = 5;
+                        const uint8_t total_reload_time_steps = 100;
+                        const int64_t reload_time_interval_us = total_reload_time_seconds * 1000000 / total_reload_time_steps;
 
-                        uint16_t buzzer_start_freq = 400;
-                        uint16_t buzzer_end_freq = 1400;
+                        const uint16_t buzzer_start_freq = 400;
+                        const uint16_t buzzer_end_freq = 1400;
                         Badge2020_Buzzer buzzer;
                         buzzer.setVolume(255);
                         

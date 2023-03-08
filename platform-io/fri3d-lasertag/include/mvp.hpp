@@ -5,6 +5,7 @@
 #include "display.hpp"
 #include "statemachine.hpp"
 #include "blaster_packet.hpp"
+#include <Adafruit_NeoPixel.h>
 
 static const uint16_t HIDING_TIME = 10;
 static const uint16_t PLAYING_TIME = 60 * 2;
@@ -17,9 +18,9 @@ static const uint8_t PLAYING_CHANNEL = 3;
 static const uint8_t INVALID_CHANNEL = 15;
 
 
-const Team REX(ConvertRGB(255, 0, 0), "Rex", eTeamRex);
-const Team GIGGLE(ConvertRGB(0, 140, 0), "Giggle", eTeamGiggle);
-const Team BUZZ(ConvertRGB(0, 0, 210), "Buzz", eTeamBuzz);
+const Team REX(ConvertRGB(255, 0, 0), Adafruit_NeoPixel::Color(255,0,0), "Rex", eTeamRex);
+const Team GIGGLE(ConvertRGB(0, 140, 0), Adafruit_NeoPixel::Color(0,255,0), "Giggle", eTeamGiggle);
+const Team BUZZ(ConvertRGB(0, 0, 210), Adafruit_NeoPixel::Color(0,0,255), "Buzz", eTeamBuzz);
 
 
 State BOOTING = State("booting");

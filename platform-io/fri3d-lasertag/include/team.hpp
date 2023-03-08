@@ -8,11 +8,16 @@
 class Team
 {
 public:
-  Team(const uint16_t &color, const std::string &name, const TeamColor team_color) : m_color(color), m_name(name), m_team_color(team_color)
+  Team(const uint16_t &screen_color, const uint32_t &led_color, const std::string &name, const TeamColor team_color) 
+  : m_screen_color(screen_color), m_led_color(led_color), m_name(name), m_team_color(team_color)
   {}
   
-  uint16_t color() const {
-    return m_color;
+  uint16_t screen_color() const {
+    return m_screen_color;
+  }
+
+  uint32_t led_color() const {
+    return m_led_color;
   }
 
   std::string name() const {
@@ -24,7 +29,8 @@ public:
   }
 
 private:
-  const uint16_t m_color;
+  const uint16_t m_screen_color;
+  const uint32_t m_led_color;
   const std::string m_name;
   const TeamColor m_team_color;
 };
