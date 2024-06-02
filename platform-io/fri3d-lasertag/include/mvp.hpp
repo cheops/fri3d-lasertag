@@ -9,7 +9,7 @@
 
 static const uint16_t HIDING_TIME = 10;
 static const uint16_t PLAYING_TIME = 60 * 2;
-static const uint8_t HIT_DAMAGE = 30;
+static const uint8_t HIT_DAMAGE = 3;
 static const uint8_t HIT_TIMEOUT = 5;
 static const uint8_t SHOT_AMMO = 1;
 

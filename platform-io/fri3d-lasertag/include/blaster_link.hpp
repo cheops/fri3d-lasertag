@@ -5,8 +5,9 @@
 #include "Arduino.h"
 #include "blaster_packet.hpp"
 
-// #define IR_RECEIVE_PIN 25  // IR receiver IO 25
+#ifndef BLASTER_LINK_PIN
 #define BLASTER_LINK_PIN 4 // Blaster link IO 04
+#endif
 
 // define this to record the received bit timings
 //#define BLASTER_LINK_DEBUG_TIMINGS
@@ -106,8 +107,10 @@ public:
             DataPacket packet = DataPacket(m_buffer.pop_message());
             taskEXIT_CRITICAL(&blaster_reader_buffer_spinlock);
         
-            //Serial.print("BLASTER_LINK: ");
-            //packet.print(&Serial);
+            // char packet_s[120];
+            // packet.print(packet_s, 120);
+            // log_d("BLASTER_LINK: %s", packet_s);
+            
             if (packet.calculate_crc() == packet.get_crc())
             {
                 if (packet.get_command() == eCommandBlasterAck && packet.get_parameter() == eParameterBlasterNotReady)
@@ -617,12 +620,12 @@ private:
         {
             // minimal packet transmit time is 58 * 526us = 30508us
             // wait for half = 15ms
-            Serial.print("send_to_blaster :: link not idle: ");
+            log_d("send_to_blaster :: link not idle");
             vTaskDelay(15 / portTICK_PERIOD_MS);
             waitCount += 1;
             if (waitCount > 3)
             {
-                Serial.println("send_to_blaster :: failed getting idle blaster link");
+                log_d("send_to_blaster :: failed getting idle blaster link");
                 return false;
             }
 
@@ -643,7 +646,7 @@ private:
         rmt_obj_t* rmt_send = NULL;
         if ((rmt_send = rmtInit(BLASTER_LINK_PIN, RMT_TX_MODE, RMT_MEM_64)) == NULL)
         {
-            Serial.println("send_to_blaster :: init sender failed");
+            log_d("send_to_blaster :: init sender failed");
             
             taskENTER_CRITICAL(&link_state_spinlock);
             link_state = eLinkStateIdle;
@@ -658,7 +661,7 @@ private:
         float realTick = rmtSetTick(rmt_send, one_micro_second_tick); // 1us tick
         if (realTick != one_micro_second_tick)
         {
-            Serial.printf("send_to_blaster :: rmtSetTick failed expected: %fns realTick: %fns\n", one_micro_second_tick, realTick);
+            log_e("send_to_blaster :: rmtSetTick failed expected: %fns realTick: %fns", one_micro_second_tick, realTick);
             rmtDeinit(rmt_send);
 
             taskENTER_CRITICAL(&link_state_spinlock);
@@ -700,12 +703,13 @@ private:
         ir_data[17].level1 = 0;
 
         // send the prepared data
-        Serial.print("send_to_blaster :: Sending data: ");
-        packet.print(&Serial);
+        char s[120];
+        packet.print(s, 120);
+        log_d("send_to_blaster :: Sending data %s", s);
         bool success = rmtWriteBlocking(rmt_send, ir_data, NR_OF_ALL_BITS);
         if (!success)
         {
-            Serial.println("send_to_blaster :: rmtWriteBlocking failed.");
+            log_e("send_to_blaster :: rmtWriteBlocking failed.");
             rmtDeinit(rmt_send);
 
             taskENTER_CRITICAL(&link_state_spinlock);
@@ -735,7 +739,7 @@ private:
         br.process_buffer();
         if (br.m_ack_state == false)
         {
-            Serial.println("send_to_blaster :: no Ack received.");
+            log_w("send_to_blaster :: no Ack received.");
 
             taskENTER_CRITICAL(&link_state_spinlock);
             link_state = eLinkStateIdle;
@@ -745,14 +749,19 @@ private:
         }
         else
         {
+            bool send_message = false;
             taskENTER_CRITICAL(&link_state_spinlock);
             if (link_state == eLinkStateWaitForAckReady)
             {
-                Serial.println("send_to_blaster :: no Ack Ready received.");
-
+                send_message = true;
                 link_state = eLinkStateIdle;
             }
             taskEXIT_CRITICAL(&link_state_spinlock);
+
+            if (send_message) {
+                // console print outside CRITICAL section
+                log_w("send_to_blaster :: no Ack Ready received.");
+            }
             // packet was Acked, but blaster did not send Ack Ready
             return true;
         }
@@ -768,13 +777,14 @@ private:
             {
                 retryCount += 1;
                 vTaskDelay(50 * retryCount / portTICK_PERIOD_MS); // sleep
-                Serial.printf("send_to_blaster :: retrying: %d\n", retryCount);
+                log_d("send_to_blaster :: retrying: %d/%d", retryCount, retries);
             }
             else
             {
                 return true;
             }
         }
+        log_e("send_to_blaster :: retryCount exceeded");
         return false;
     }
 };

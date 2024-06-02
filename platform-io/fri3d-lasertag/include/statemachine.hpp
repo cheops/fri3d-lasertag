@@ -25,7 +25,7 @@ static portMUX_TYPE stateMachine_model_event_spinlock = portMUX_INITIALIZER_UNLO
 class Model {
 public:
     Model() {
-        Serial.println("create model");
+        log_d("create model");
     }
 
     void set_event(Event* ptr_event);
@@ -60,9 +60,9 @@ class Event {
 };
 
 Event* Model::run(State* ptr_state) {
-    Serial.println("Model::run outside class");
+    log_d("Model::run outside class");
     while(!has_event()) {
-        Serial.println("no event -> sleeping");
+        log_d("no event -> sleeping");
         vTaskDelay(500/portTICK_PERIOD_MS);
     }
     taskENTER_CRITICAL(&stateMachine_model_event_spinlock);
@@ -73,8 +73,8 @@ Event* Model::run(State* ptr_state) {
 }
 
 void Model::set_event(Event* ptr_event)  {
+    log_d("set event: %s", ptr_event->m_name.c_str());
     taskENTER_CRITICAL(&stateMachine_model_event_spinlock);
-    Serial.printf("set event: %s\n", ptr_event->m_name.c_str());
     m_ptr_event = ptr_event;
     taskEXIT_CRITICAL(&stateMachine_model_event_spinlock);
 }
@@ -98,33 +98,33 @@ class Transition {
 class StateMachine {
 public:
     StateMachine(){
-        Serial.println("default constructor StateMachine");
+        log_d("default constructor StateMachine");
     }
     StateMachine(Model* model, Transition* transitions, uint8_t transitions_size, State* initial_state) : 
         m_ptr_model(model), m_ptr_transitions(transitions), m_transitions_size(transitions_size), m_ptr_state(initial_state) {
-        Serial.println("parameter constructor StateMachine");
+        log_d("parameter constructor StateMachine");
     }
     
     void start() {
         while (true) {
 
-            Serial.printf("StateMachine Model::run with state: %s\n", m_ptr_state->m_name.c_str());
+            log_d("StateMachine Model::run with state: %s", m_ptr_state->m_name.c_str());
             Event* ptr_new_event = m_ptr_model->run(m_ptr_state);
-            Serial.printf("model run finished, new_event: %s\n", ptr_new_event->m_name.c_str());
+            log_d("model run finished, new_event: %s", ptr_new_event->m_name.c_str());
 
             bool found = false;
             for (uint8_t i = 0; i < m_transitions_size; i++) {
 
                 if (m_ptr_transitions[i].m_ptr_trigger->equals(ptr_new_event) && m_ptr_transitions[i].m_ptr_source->equals(m_ptr_state)) {
 
-                    Serial.printf("new_event: %s, transition_source: %s, transition.destination: %s\n", 
+                    log_d("new_event: %s, transition_source: %s, transition.destination: %s", 
                         ptr_new_event->m_name.c_str(), m_ptr_transitions[i].m_ptr_source->m_name.c_str(), m_ptr_transitions[i].m_ptr_destination->m_name.c_str());
 
                     m_ptr_state = m_ptr_transitions[i].m_ptr_destination;
 
                     Model* new_model = ptr_new_event->clear_new_model();
                     if (new_model != nullptr) {
-                        Serial.println("setting new model");
+                        log_d("setting new model");
                         m_ptr_model = new_model;
                     }
 
@@ -134,7 +134,7 @@ public:
                 }
             }
             if (!found) {
-                Serial.printf("No transition found for new_event: %s\n", ptr_new_event->m_name.c_str());
+                log_d("No transition found for new_event: %s", ptr_new_event->m_name.c_str());
             }
         }
     }

@@ -48,8 +48,7 @@ public:
                 t.time_micros = time_micros;
 
                 DataPacket packet = DataPacket(t);
-                //Serial.print("IR_RECEIVE_PIN: ");
-                //packet.print(&Serial);
+                //log_d("IR_RECEIVE_PIN: %s", packet.print().c_str());
                 if (packet.calculate_crc() == packet.get_crc()) {
                     taskENTER_CRITICAL(&ir_receiver_buffer_spinlock);
                     m_buffer.add_message(packet);

@@ -20,16 +20,16 @@ static const char* flag_type_name = "Flag";
 static const char* player_type_name = "Player";
 
 static const int taskCore = tskNO_AFFINITY;
-static const int taskPriority = tskIDLE_PRIORITY + 1;
+static const int taskPriority = tskIDLE_PRIORITY;
 
 class FlagAndPlayer : public Profile, public Model {
 public:
     FlagAndPlayer(const Team team, Display* df) : Profile(), Model(), m_display(df), m_team(team) {
-        Serial.printf("Create FlagAndPlayer Model %s\n", team.name().c_str());
+        log_d("Create FlagAndPlayer Model %s", team.name().c_str());
     }
 
     Event* run(State* ptr_state) override {
-        Serial.printf("FlagAndPlayer::run state:%s\n", ptr_state->m_name.c_str());
+        log_d("FlagAndPlayer::run state:%s", ptr_state->m_name.c_str());
         m_ptr_state = ptr_state;
 
         m_display->draw_static_middle(m_ptr_state->m_name);
@@ -42,7 +42,7 @@ public:
 
         // wait for some task to set the event
         while(!has_event()) {
-            //Serial.println("no event -> sleeping");
+            //log_d("no event -> sleeping");
             vTaskDelay(100/portTICK_PERIOD_MS);
         }
 
@@ -54,7 +54,7 @@ public:
 
     TaskHandle_t* get_task_handle() {
         if (m_task_next_free_handle >= task_max_handles) {
-            Serial.printf("FlagAndPlayer::get_task_handle Error, reached task_max_handles: %d\n", task_max_handles);
+            log_e("FlagAndPlayer::get_task_handle Error, reached task_max_handles: %d", task_max_handles);
             return NULL;
         } else {
             m_task_handles[m_task_next_free_handle] = TaskHandle_t();
@@ -66,22 +66,22 @@ public:
     }
 
     void stop_tasks() {
-        Serial.println("event has been set, notifying tasks to stop");
+        log_d("event has been set, notifying tasks to stop");
         if (m_task_next_free_handle > 0) {
             for (uint8_t i = 0; i < m_task_next_free_handle; i++) {
-                Serial.printf("notify task: %d\n", i);
+                log_d("notify task: %d", i);
                 if (m_task_handles[i] != NULL) {
                     BaseType_t xResult;
                     xResult = xTaskNotifyGive( m_task_handles[i]);
                     if ( xResult == pdFAIL) {
                         // failed to notify the task, 
-                        Serial.printf("Failed notifying task, killing it. index: %d\n", i);
+                        log_w("Failed notifying task, killing it. index: %d", i);
                         vTaskDelete(m_task_handles[i]);
                     } else if ( xResult == pdPASS ) {
-                        Serial.printf("Successfully notified task, index: %d\n", i);
+                        log_d("Successfully notified task, index: %d", i);
                     }
                 } else {
-                    Serial.printf("Failed notifying task, NULL ptr. index: %d\n", i);
+                    log_d("Failed notifying task, NULL ptr. index: %d", i);
                 }
             }
             vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -116,7 +116,7 @@ protected:
     TaskHandle_t m_task_handles[task_max_handles];
 
     void booting() {
-        Serial.println("FlagAndPlayer::booting");
+        log_d("FlagAndPlayer::booting");
         
         // fetch all registered profiles and select a random one as the new StateMachineModel
         std::vector<Profile*> profiles = Profile::find_profiles();
@@ -124,7 +124,7 @@ protected:
         Profile* ptr_new_profile = profiles[rnd_index];
         
         FlagAndPlayer* ptr_fap = reinterpret_cast<FlagAndPlayer*>(ptr_new_profile);
-        Serial.printf("Selected %s %s\n", ptr_fap->type_name, ptr_fap->m_team.name().c_str());
+        log_d("Selected %s %s", ptr_fap->type_name, ptr_fap->m_team.name().c_str());
 
         // not really needed, start of practicing will start with the new Model, and the FlagAndPlayer::m_team will be set correctly
         const Team new_team = ptr_fap->m_team;
@@ -137,7 +137,7 @@ protected:
     }
 
     virtual void practicing() {
-        Serial.println("FlagAndPlayer::practicing");
+        log_d("FlagAndPlayer::practicing");
         m_current_channel = m_practicing_channel;
         blasterLink.set_team(m_team.team_color());
         blasterLink.set_channel(m_current_channel);
@@ -160,7 +160,7 @@ protected:
     }
 
     void hiding() {
-        Serial.println("FlagAndPlayer::hiding");
+        log_d("FlagAndPlayer::hiding");
         blasterLink.set_trigger_action(false, false, false, true); // disable trigger
 
         TaskHandle_t* ptr_task_countdown_handle = get_task_handle();
@@ -175,7 +175,7 @@ protected:
     }
 
     virtual void playing() {
-        Serial.println("FlagAndPlayer::_playing");
+        log_d("FlagAndPlayer::_playing");
         m_current_channel = m_playing_channel;
         blasterLink.set_channel(m_current_channel);
 
@@ -192,7 +192,7 @@ protected:
     }
 
     void finishing() {
-        Serial.println("FlagAndPlayer::_finishing");
+        log_d("FlagAndPlayer::_finishing");
         m_current_channel = INVALID_CHANNEL;
         blasterLink.set_channel(m_current_channel);
         blasterLink.set_trigger_action(false, false, false, true); // disable trigger
@@ -211,7 +211,7 @@ protected:
     }
 
     static void task_ble_listen(void* pvParameter) {
-        Serial.println(":: task_ble_listen :: started.");
+        log_d(":: task_ble_listen :: started.");
         FlagAndPlayer* thiz = reinterpret_cast<FlagAndPlayer*>(pvParameter);
 
         BleMessageType to_listen;
@@ -223,10 +223,10 @@ protected:
             to_listen = eBleMessageTypeNextRound;
             ptr_event = &NEXT_ROUND;
         } else {
-            Serial.printf("task_ble_listen :: nothing to listen for in state %s\n", thiz->m_ptr_state->m_name.c_str());
+            log_d("task_ble_listen :: nothing to listen for in state %s", thiz->m_ptr_state->m_name.c_str());
             vTaskDelete(NULL);
         }
-        Serial.printf(":: task_ble_listen :: listening for:%d\n", to_listen);
+        log_d(":: task_ble_listen :: listening for:%d", to_listen);
 
         bleClient.start_listen(to_listen);
         
@@ -249,7 +249,7 @@ protected:
 
                 ble_message.print(&Serial);
 
-                Serial.printf("Setting event %s\n", ptr_event->m_name.c_str());
+                log_d("Setting event %s", ptr_event->m_name.c_str());
                 thiz->set_event(ptr_event);
 
                 xMaxBlockTime = portMAX_DELAY; // wait forever to get notified
@@ -259,7 +259,7 @@ protected:
             BaseType_t xResult;
             xResult = ulTaskNotifyTake(pdTRUE, xMaxBlockTime);  /* pdTRUE = clear bits on entry. */
             if ( xResult == pdPASS ) {
-                Serial.println(":: task_ble_listen we got notified to stop, killing ourselves.");
+                log_d(":: task_ble_listen we got notified to stop, killing ourselves.");
                 should_stop = true;
             }
 
@@ -285,7 +285,7 @@ protected:
             total_display_time = thiz->m_playing_time;
             current_display_time = total_display_time;
         } else {
-            Serial.printf(":: task_countdown :: nothing to countdown in state %s\n", thiz->m_ptr_state->m_name.c_str());
+            log_d(":: task_countdown :: nothing to countdown in state %s, shutting down", thiz->m_ptr_state->m_name.c_str());
             vTaskDelete(NULL);
         }
 
@@ -322,7 +322,7 @@ protected:
             BaseType_t xResult;
             xResult = ulTaskNotifyTake(pdTRUE, xMaxBlockTime);  /* pdTRUE = clear bits on entry. */
             if ( xResult == pdPASS ) {
-                Serial.println(":: task_countdown :: we got notified to stop, killing ourselves.");
+                log_d(":: task_countdown :: we got notified to stop, killing ourselves.");
                 should_stop = true;
             }
 
@@ -345,7 +345,7 @@ public:
 protected:
 
     void practicing() override {
-        Serial.println("Flag::practicing");
+        log_d("Flag::practicing");
         reinterpret_cast<DisplayFlag*>(m_display)->init();
 
         TaskHandle_t* ptr_task_receive_ir = get_task_handle();
@@ -366,7 +366,7 @@ protected:
     }
 
     void playing() override {
-        Serial.println("Flag::playing");
+        log_d("Flag::playing");
 
         TaskHandle_t* ptr_task_receive_ir = get_task_handle();
         xTaskCreatePinnedToCore(
@@ -392,8 +392,7 @@ protected:
             while (badgeIrReceiver.message_available()) {
                 DataPacket message = badgeIrReceiver.pop_message();
 
-                Serial.print("-Ir_link: ");
-                message.print(&Serial);
+                log_d("-Ir_link: %s", message.print().c_str());
 
                 // incoming enemy fire after hit_timeout of previous shot
                 if (message.get_command() == eCommandShoot && 
@@ -457,7 +456,7 @@ protected:
             const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 100 );
             xResult = ulTaskNotifyTake(pdTRUE, xMaxBlockTime);  /* pdTRUE = clear bits on entry. */
             if ( xResult == pdPASS ) {
-                Serial.println(":: task_receive_ir :: we got notified to stop, killing ourselves.");
+                log_d(":: task_receive_ir :: we got notified to stop, killing ourselves.");
                 should_stop = true;
             }
 
@@ -482,7 +481,7 @@ protected:
     int8_t m_ammo;
 
     void practicing() {
-        Serial.println("Player::practicing");
+        log_d("Player::practicing");
         reinterpret_cast<DisplayPlayer*>(m_display)->init();
         m_ammo = 100;
         reinterpret_cast<DisplayPlayer*>(m_display)->draw_upper_right(m_ammo);
@@ -515,7 +514,7 @@ protected:
     }
 
     void playing() override {
-        Serial.println("Player::playing");
+        log_d("Player::playing");
 
         TaskHandle_t* ptr_task_receive_ir = get_task_handle();
         xTaskCreatePinnedToCore(
@@ -538,7 +537,7 @@ protected:
             ptr_task_blaster_link,   //Task handle.
             taskCore);               //Core where the task should run
 
-        Serial.println("Player::playing wait for tasks to get started, before enabling trigger.");
+        log_d("Player::playing wait for tasks to get started, before enabling trigger.");
         vTaskDelay(100 / portTICK_PERIOD_MS);
 
         blasterLink.set_trigger_action(false, false, false, false); // enable trigger
@@ -557,8 +556,7 @@ protected:
             while (!should_stop && badgeIrReceiver.message_available()) {
                 DataPacket message = badgeIrReceiver.pop_message();
 
-                Serial.print("-Ir_link: ");
-                message.print(&Serial);
+                log_d("-Ir_link: %s", message.print().c_str());
 
                 // incoming enemy fire after hit_timeout of previous shot
                 if (message.get_command() == eCommandShoot && 
@@ -584,7 +582,7 @@ protected:
             const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 100 );
             xResult = ulTaskNotifyTake(pdTRUE, xMaxBlockTime);  /* pdTRUE = clear bits on entry. */
             if ( xResult == pdPASS ) {
-                Serial.println(":: task_receive_ir :: we got notified to stop, killing ourselves.");
+                log_d(":: task_receive_ir :: we got notified to stop, killing ourselves.");
                 should_stop = true;
             }
 
@@ -607,8 +605,7 @@ protected:
             while (!should_stop && blasterLink.message_available()) {
                 DataPacket message = blasterLink.pop_message();
 
-                Serial.print("-Blaster_link: ");
-                message.print(&Serial);
+                log_d("-Blaster_link: %s", message.print().c_str());
 
                 // incoming enemy fire after hit_timeout of previous shot
                 if (message.get_command() == eCommandShoot && 
@@ -635,7 +632,7 @@ protected:
                         thiz->m_ammo = 0;
                     }
                     reinterpret_cast<DisplayPlayer*>(thiz->m_display)->draw_upper_right(thiz->m_ammo);
-                    Serial.printf("Shoot ==> new_ammo: %d\n", thiz->m_ammo);
+                    log_d("Shoot ==> new_ammo: %d", thiz->m_ammo);
 
                     // start ammo reloading animation
                     if (thiz->m_ammo <= 0) {
@@ -715,7 +712,7 @@ protected:
             const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 100 );
             xResult = ulTaskNotifyTake(pdTRUE, xMaxBlockTime);  /* pdTRUE = clear bits on entry. */
             if ( xResult == pdPASS ) {
-                Serial.println(":: task_blaster_link :: we got notified to stop, killing ourselves.");
+                log_d(":: task_blaster_link :: we got notified to stop, killing ourselves.");
                 should_stop = true;
             }
 

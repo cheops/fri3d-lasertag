@@ -11,8 +11,6 @@
 
 // to read https://microcontrollerslab.com/category/freertos-arduino-tutorial/
 
-StateMachine mvp_statemachine = StateMachine(&PLAYER_BUZZ_PROFILE, TRANSITIONS_MVP, TRANSITIONS_COUNT, &PRACTICING);
-
 /**
  *starting the statemachine in another task gives a crash when bleClient is accessed
 
@@ -22,7 +20,7 @@ void task_statemachine(void* pvParameter) {
     // this keeps running forever
     thiz->start();
 
-    Serial.println("our Statemachine has crashed.");
+    log_e("our Statemachine has crashed.");
 
     vTaskDelete(NULL);
 }
@@ -34,7 +32,7 @@ void setup(void)
     TaskHandle_t* ptr_task_statemachine;
     const int taskCore = tskNO_AFFINITY;
     const int taskPriority = tskIDLE_PRIORITY;
-    xTaskCreatePinnedToCore(
+    (
         task_statemachine,         //Function to implement the task 
         "task_statemachine",       //Name of the task
         5000,                      //Stack size in words 
@@ -48,8 +46,15 @@ void setup(void)
 void setup(void)
 {
     Serial.begin(115200);
+
+    {
+        Badge2020_TFT tft;
+        tft.enableBacklight();
+    }
+
     delay(1000); // wait for blaster to start
 
+    StateMachine mvp_statemachine = StateMachine(&PLAYER_GIGGLE_PROFILE, TRANSITIONS_MVP, TRANSITIONS_COUNT, &PRACTICING);
     mvp_statemachine.start();
     // void loop() is never reached, since statemachine keeps running forever
 }
@@ -57,5 +62,6 @@ void setup(void)
 void loop()
 {
     // nothing is done here
-    delay(1000);
+    log_d("terminating the loop task");
+    vTaskDelete(NULL);
 }

@@ -91,34 +91,34 @@ public:
     return TeamColor((m_t.raw_data & 0b0000000000000111) >> 0);
   }
   
-  void get_team_str(Print* aSerial) {
+  const char* get_team_str() {
     switch (get_team()) {
       case eNoTeam:
-        aSerial->print("NO TEAM");
+        return "NO TEAM";
         break;
       case eTeamRex:
-        aSerial->print("REX");
+        return "REX";
         break;
       case eTeamGiggle:
-        aSerial->print("GIGGLE");
+        return "GIGGLE";
         break;
       case eTeamYellow:
-        aSerial->print("YELLOW");
+        return "YELLOW";
         break;
       case eTeamBuzz:
-        aSerial->print("BUZZ");
+        return "BUZZ";
         break;
       case eTeamMagenta:
-        aSerial->print("MAGENTA");
+        return "MAGENTA";
         break;
       case eTeamCyan:
-        aSerial->print("CYAN");
+        return "CYAN";
         break;
       case eTeamWhite:
-        aSerial->print("WHITE");
+        return "WHITE";
         break;
       default:
-        aSerial->print("");
+        return "";
     }
   }
 
@@ -192,23 +192,16 @@ public:
     return calc_crc;
   }
 
-  void print(Print* aSerial) {
-    aSerial->print("packet: ");
-    aSerial->print("time: ");
-    aSerial->print(get_time_micros());
-    aSerial->print(", raw:");
-    aSerial->print(get_raw(), HEX);
-    aSerial->print(", CRC:");
-    aSerial->print(calculate_crc()==get_crc()?"OK":"NOK");
-    aSerial->print(", command:");
-    aSerial->print(get_command());
-    aSerial->print(", team:");
-    get_team_str(aSerial);
-    aSerial->print(", trigger:");
-    aSerial->print(get_trigger()?"true":"false");
-    aSerial->print(", parameter:");
-    aSerial->print(get_parameter());
-    aSerial->print("\n");
+  void print(char* s, size_t size) {
+    int len = snprintf(s, size, "packet: time: %lld, raw: %x, CRC: %s, command: %u, team: %s, trigger: %s, parameter: %d", 
+      get_time_micros(),
+      get_raw(),
+      calculate_crc()==get_crc()?"OK":"NOK",
+      get_command(),
+      get_team_str(),
+      get_trigger()?"true":"false",
+      get_parameter()
+    );
   }
 
 private:

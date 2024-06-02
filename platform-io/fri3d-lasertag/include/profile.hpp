@@ -8,7 +8,7 @@
 class Profile {
 public:    
     Profile() {
-        Serial.println("registering in c_children.");
+        log_d("registering in c_children.");
         c_children.push_back(this);
     }
 

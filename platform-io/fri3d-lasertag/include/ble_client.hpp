@@ -43,7 +43,9 @@ class BleMessage {
 public:
     BleMessage() {}
     BleMessage(std::string man_spec_data) {
-        if (man_spec_data.size() != 14) Serial.printf("wrong length of man_spec_data: '%d'\n", man_spec_data.size());
+        if (man_spec_data.size() != 14) {
+            log_e("wrong length of man_spec_data: '%d'", man_spec_data.size());
+        }
 
         m_man_spec_data = man_spec_data.substr(0,14);
     }
@@ -151,7 +153,9 @@ public:
     
     void start_scan() {
         bool success = m_pBLEScan->start(scanTime, scanCompleteCB, false);
-        if (!success) Serial.println("Failed BLEScan->start()");
+        if (!success) {
+            log_e("Failed BLEScan->start()");
+        }
 
         taskENTER_CRITICAL(&bleClient_listening_spinlock);
         m_listening = true;
@@ -235,23 +239,26 @@ private:
     void onResult(BLEAdvertisedDevice advertisedDevice) {
         uint8_t ourMac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE};
         BLEAddress ourBleAddress = BLEAddress(ourMac);
-        const char ourCompanyId[] = {0xFF, 0xFF};
 
-        std::string man_data = advertisedDevice.getManufacturerData();
-        std::string man_id = man_data.substr(0,2);
-        std::string man_spec_data = man_data.substr(2);
-        BleMessageType message_type = BleMessage::get_message_type(man_spec_data);
-        
         if (BLE_ADDR_TYPE_RANDOM == advertisedDevice.getAddressType() && 
-            advertisedDevice.getAddress().equals(ourBleAddress) &&
-            strcmp(ourCompanyId, man_id.c_str()) &&
-            message_type == m_listen_type) {
-            
-            taskENTER_CRITICAL(&bleClient_message_spinlock);
-            m_bleMessage = BleMessage(man_spec_data);
-            taskEXIT_CRITICAL(&bleClient_message_spinlock);
+            advertisedDevice.getAddress().equals(ourBleAddress) ) {
+                const char ourCompanyId[] = {0xFF, 0xFF};
+                std::string man_data = advertisedDevice.getManufacturerData();
+                if (man_data.size() > 3) {
+                    std::string man_id = man_data.substr(0,2);
+                    std::string man_spec_data = man_data.substr(2);
+                    BleMessageType message_type = BleMessage::get_message_type(man_spec_data);
+                    
+                    if (strcmp(ourCompanyId, man_id.c_str()) &&
+                        message_type == m_listen_type) {
+                        
+                        taskENTER_CRITICAL_ISR(&bleClient_message_spinlock);
+                        m_bleMessage = BleMessage(man_spec_data);
+                        taskEXIT_CRITICAL_ISR(&bleClient_message_spinlock);
 
-            stop_scan();
+                        stop_scan();
+                    }
+                }
         }
     }
 };
@@ -266,7 +273,7 @@ void scanCompleteCB(BLEScanResults scanResults) {
             delay(1000);
             bleClient.start_scan();
         } else {
-            Serial.println("bleClient m_should_stop_listening handled.");
+            log_d("bleClient m_should_stop_listening handled.");
             bleClient.reset();
         }
     }
