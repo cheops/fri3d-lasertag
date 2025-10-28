@@ -23,7 +23,7 @@ class StateMachine:
             print("model run finished, new_event", new_event)
             for t in self.transitions:
                 if t.trigger.name == new_event.name and t.source.name == self.state.name:
-                    print(new_event, t.source, t.destination)
+                    print("new_event:", new_event, "transition.source:", t.source, "transition.destination:", t.destination)
                     self.state = t.destination
                     new_model = new_event.clear_new_model()
                     if new_model:
