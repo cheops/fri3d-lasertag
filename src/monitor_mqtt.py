@@ -30,14 +30,14 @@ async def _conn_han(the_client):
         await the_client.subscribe(topic)
 
 
-async def publish_mqtt_flag(team, game_id, fnc_get_health, fnc_get_remaining_seconds):
+async def publish_mqtt_flag(team, mqtt_game_id, fnc_get_health, fnc_get_remaining_seconds):
     try:
         my_client = await get_client()
         while True:
             health = fnc_get_health()
             status = "alive" if health > 0 else "dead"
             remaining_seconds = fnc_get_remaining_seconds()
-            flag_data = f"{team_mqtt[team]}C_{health}H_{status}S_{remaining_seconds}T_{game_id}G_"
+            flag_data = f"{team_mqtt[team]}C_{health}H_{status}S_{remaining_seconds}T_{mqtt_game_id}G_"
 
             await my_client.publish('flag', flag_data)
             await uasyncio.sleep(5)
@@ -45,7 +45,7 @@ async def publish_mqtt_flag(team, game_id, fnc_get_health, fnc_get_remaining_sec
         await close_client()
 
 
-async def publish_mqtt_player(team, game_id, fnc_get_health, fnc_get_hits, fnc_get_shots, fnc_get_remaining_seconds):
+async def publish_mqtt_player(team, mqtt_game_id, fnc_get_health, fnc_get_hits, fnc_get_shots, fnc_get_remaining_seconds):
     try:
         my_client = await get_client()
         while True:
@@ -54,7 +54,7 @@ async def publish_mqtt_player(team, game_id, fnc_get_health, fnc_get_hits, fnc_g
             remaining_seconds = fnc_get_remaining_seconds()
             hits = fnc_get_hits()
             shots = fnc_get_shots()
-            player_data = f"{team_mqtt[team]}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{game_id}G_"
+            player_data = f"{team_mqtt[team]}C_{client_id}I_{health}H_{status}S_{hits}HI_{shots}SH_{remaining_seconds}T_{mqtt_game_id}G_"
 
             await my_client.publish('player', player_data)
             await uasyncio.sleep(5)

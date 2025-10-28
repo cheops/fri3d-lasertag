@@ -27,7 +27,7 @@ Fri3dButtons buttons = Fri3dButtons();
 bool button0_pressed = false;
 bool button1_pressed = false;
 
-long long startMicros = esp_timer_get_time();
+int64_t startMicros = esp_timer_get_time();
 
 /**
 bluetooth advertisement packet length = 37 bytes
@@ -126,11 +126,18 @@ void printAdvData(std::string s) {
     }
   }
   Serial.println("");
+  }
+  Serial.println("");
 
+}
 }
 
 void setup() {
   Serial.begin(115200);
+
+  // mac address should be 2 less (this also sets wifi mac)
+  //esp_base_mac_addr_set(&newMACAddress[0]);
+
 
   // mac address should be 2 less (this also sets wifi mac)
   //esp_base_mac_addr_set(&newMACAddress[0]);
@@ -142,29 +149,38 @@ void setup() {
   // this prints the real device address, we set our custom address for the broadcast packets
   //printDeviceAddress();
 
+  BLEDevice::init(""); // max 29 char
+
+  // this prints the real device address, we set our custom address for the broadcast packets
+  //printDeviceAddress();
+
 
   pinMode( BUTTON0_PIN, INPUT_PULLUP );
   pinMode( BUTTON1_PIN, INPUT_PULLUP );
 
   Serial.println("Waiting for button press...");
+  Serial.println("Waiting for button press...");
 }
 
 bool prestartCounting = false;
-long long lastMicrosPrestart = 0;
+int64_t lastMicrosPrestart = 0;
 const long prestartInterval = 1000000; // 1 second
 int countdown_hiding_time = HIDING_TIME;
 bool nextRound = false;
 const long nextRoundInterval = 1000000; // 1 second
 const int nextRoundRepeat = NEXT_ROUND_REPEAT;
+const int nextRoundRepeat = NEXT_ROUND_REPEAT;
 int nextRoundRepeatCounter = nextRoundRepeat;
 
 void init_prestart_countdown() {
+  BLEDevice::stopAdvertising();
   BLEDevice::stopAdvertising();
   countdown_hiding_time = HIDING_TIME;
   prestartCounting = false;
 }
 
 void init_next_round_countdown() {
+  BLEDevice::stopAdvertising();
   BLEDevice::stopAdvertising();
   nextRound = false;
   nextRoundRepeatCounter = nextRoundRepeat;
@@ -184,11 +200,13 @@ void loop() {
 
   if (button0_pressed) {
     init_next_round_countdown(); //stop the other function
+    init_next_round_countdown(); //stop the other function
     prestartCounting = true;
     button0_pressed = false;
   }
 
   if (button1_pressed) {
+    init_prestart_countdown(); // stop the other function
     init_prestart_countdown(); // stop the other function
     nextRound = true;
     button1_pressed = false;
@@ -225,6 +243,7 @@ void loop() {
       } else {
         init_prestart_countdown();
         Serial.println("Waiting for button press...");
+        Serial.println("Waiting for button press...");
       }
       
     }
@@ -233,6 +252,8 @@ void loop() {
   if (nextRound) {
     if (startMicros - lastMicrosPrestart >= nextRoundInterval) {
       lastMicrosPrestart = startMicros;
+
+      BLEDevice::stopAdvertising();
 
       BLEDevice::stopAdvertising();
 
@@ -259,6 +280,14 @@ void loop() {
         nextRoundRepeatCounter --;
       } else {
         init_next_round_countdown();
+        Serial.println("Waiting for button press...");
+      }
+    }    
+  }
+
+
+  delay(5); // slow the loop down, otherwise the esp32 becomes not responsive when broadcasting, why?
+
         Serial.println("Waiting for button press...");
       }
     }    

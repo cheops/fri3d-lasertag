@@ -52,11 +52,11 @@ def wheel(pos, max):
     return (int(pos * 3 * max / 255), 0, int(max - pos * 3 * max / 255))
 
 
-brightness = 20
 
 
 # rainbow
 def rainbow_cycle(wait):
+    brightness = 20
     for j in range(255):
         for i in range(NUM_LEDS):
             rc_index = (i * 256 // NUM_LEDS) + j

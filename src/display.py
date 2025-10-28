@@ -148,7 +148,7 @@ class DisplayFlag(Display):
         |    countdown     |
         |       0:00       |
         +------------------+
-        |    flag buzz   |
+        |    flag buzz     |
         +------------------+
         """
 

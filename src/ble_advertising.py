@@ -94,7 +94,7 @@ def demo():
     print(decode_name(payload))
     print(decode_services(payload))
 
-    payload_2 = advertising_payload(company_id=0xfff, manufacturer_specific_data=0xdeadbeef)
+    payload_2 = advertising_payload(company_id=0xffff, manufacturer_specific_data=0xdeadbeef)
     print(payload_2)
     print(decode_man_spec_data(payload_2))
 
